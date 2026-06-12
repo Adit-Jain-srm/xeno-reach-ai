@@ -18,7 +18,7 @@ try {
     auth: { persistSession: false },
     db: { schema: 'public' },
   });
-  console.error('[Supabase] Connected to ' + SUPABASE_URL);
+  console.log('[Supabase] Connected to ' + SUPABASE_URL);
 } catch (err) {
   console.error('[Supabase] FAILED:', (err as Error).message);
   const mockChain: any = new Proxy({}, {
