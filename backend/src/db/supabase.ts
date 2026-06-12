@@ -1,5 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import ws from 'ws';
+import WebSocket from 'ws';
+
+// Polyfill WebSocket globally for Node.js < 22
+if (typeof globalThis.WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = WebSocket;
+}
 
 let supabase: SupabaseClient;
 
@@ -12,7 +17,6 @@ try {
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: false },
     db: { schema: 'public' },
-    realtime: { transport: ws as any },
   });
   console.error('[Supabase] Connected to ' + SUPABASE_URL);
 } catch (err) {
