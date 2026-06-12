@@ -156,23 +156,30 @@ export function buildFilterSQL(filterConfig: FilterConfig): string {
   const { conditions, logic } = filterConfig;
   if (!conditions || conditions.length === 0) return 'SELECT * FROM customers';
 
+  const escape = (v: unknown): string => {
+    if (v === null || v === undefined) return 'NULL';
+    if (typeof v === 'number') return String(v);
+    return `'${String(v).replace(/'/g, "''")}'`;
+  };
+
   const clauses = conditions.map(c => {
     const { field, operator, value } = c;
+    const safeField = field.replace(/[^a-z_]/gi, '');
     switch (operator) {
-      case 'eq': return `${field} = '${value}'`;
-      case 'neq': return `${field} != '${value}'`;
-      case 'gt': return `${field} > ${value}`;
-      case 'gte': return `${field} >= ${value}`;
-      case 'lt': return `${field} < '${value}'`;
-      case 'lte': return `${field} <= '${value}'`;
+      case 'eq': return `${safeField} = ${escape(value)}`;
+      case 'neq': return `${safeField} != ${escape(value)}`;
+      case 'gt': return `${safeField} > ${escape(value)}`;
+      case 'gte': return `${safeField} >= ${escape(value)}`;
+      case 'lt': return `${safeField} < ${escape(value)}`;
+      case 'lte': return `${safeField} <= ${escape(value)}`;
       case 'in': {
-        const vals = Array.isArray(value) ? value.map(v => `'${v}'`).join(',') : `'${value}'`;
-        return `${field} IN (${vals})`;
+        const vals = Array.isArray(value) ? value.map(v => escape(v)).join(',') : escape(value);
+        return `${safeField} IN (${vals})`;
       }
-      case 'contains': return `${field} ILIKE '%${value}%'`;
+      case 'contains': return `${safeField} ILIKE ${escape(`%${value}%`)}`;
       case 'between': {
-        const [min, max] = value as [any, any];
-        return `${field} BETWEEN ${min} AND ${max}`;
+        const [min, max] = value as [unknown, unknown];
+        return `${safeField} BETWEEN ${escape(min)} AND ${escape(max)}`;
       }
       default: return '1=1';
     }

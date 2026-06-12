@@ -94,42 +94,70 @@ async function generateMessage(args: any) {
   const channelLimits: Record<string, number> = {
     whatsapp: 160, sms: 140, email: 500, rcs: 200,
   };
-
   const maxLength = channelLimits[channel] || 200;
-  const toneGuide: Record<string, string> = {
-    friendly: 'warm and conversational',
-    urgent: 'creating urgency with time-limited language',
-    premium: 'sophisticated and exclusive',
-    casual: 'relaxed and fun',
-    professional: 'clear and business-like',
-  };
 
-  // Generate message based on parameters (simplified — in production, call GPT for this)
-  let message = '';
-  const name = '{{name}}';
+  // Use Azure OpenAI to generate contextual message
+  try {
+    const { AzureOpenAI } = await import('openai');
+    const client = new AzureOpenAI({
+      endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+      apiKey: process.env.AZURE_OPENAI_API_KEY,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2025-01-01-preview',
+    });
 
-  if (tone === 'urgent' && offer) {
-    message = `⏰ ${name}, last chance! ${offer}. Don't miss out — offer expires tonight at BrewPulse!`;
-  } else if (tone === 'premium') {
-    message = `${name}, as a valued BrewPulse member, you have exclusive access: ${offer || goal}. Visit your nearest store to redeem.`;
-  } else if (tone === 'friendly') {
-    message = `Hey ${name}! 👋 ${goal}. ${offer ? `Here's something special for you: ${offer}` : 'We\'d love to see you at BrewPulse!'} ☕`;
-  } else {
-    message = `Hi ${name}, ${goal}. ${offer || 'Visit BrewPulse today!'} — BrewPulse`;
+    const prompt = `Generate a marketing message for BrewPulse coffee chain.
+Goal: ${goal}
+Channel: ${channel} (max ${maxLength} chars)
+Tone: ${tone}
+${offer ? `Offer: ${offer}` : ''}
+${audience_description ? `Audience: ${audience_description}` : ''}
+
+Requirements:
+- Use {{name}} as personalization placeholder
+- Keep under ${maxLength} characters
+- Match the ${channel} format (${channel === 'whatsapp' ? 'casual with emoji' : channel === 'sms' ? 'concise, no emoji' : channel === 'email' ? 'can be longer, professional' : 'rich and engaging'})
+- Include a clear CTA
+- Return ONLY the message text, nothing else.`;
+
+    const response = await client.chat.completions.create({
+      model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 200,
+      temperature: 0.8,
+    });
+
+    const message = response.choices[0]?.message?.content?.trim() || '';
+    return {
+      message: message.length > maxLength ? message.substring(0, maxLength - 3) + '...' : message,
+      channel,
+      character_count: Math.min(message.length, maxLength),
+      max_length: maxLength,
+      tone,
+      personalization_fields: ['name'],
+      ai_generated: true,
+    };
+  } catch (err) {
+    // Fallback to template-based generation
+    let message = '';
+    const name = '{{name}}';
+
+    if (tone === 'urgent' && offer) {
+      message = `${name}, last chance! ${offer}. Expires tonight at BrewPulse!`;
+    } else if (tone === 'premium') {
+      message = `${name}, as a valued BrewPulse member: ${offer || goal}. Visit your nearest store.`;
+    } else if (tone === 'friendly') {
+      message = `Hey ${name}! ${goal}. ${offer ? offer : 'See you at BrewPulse!'}`;
+    } else {
+      message = `Hi ${name}, ${goal}. ${offer || 'Visit BrewPulse today!'}`;
+    }
+
+    if (message.length > maxLength) message = message.substring(0, maxLength - 3) + '...';
+
+    return {
+      message, channel, character_count: message.length, max_length: maxLength,
+      tone, personalization_fields: ['name'], ai_generated: false,
+    };
   }
-
-  if (message.length > maxLength) {
-    message = message.substring(0, maxLength - 3) + '...';
-  }
-
-  return {
-    message,
-    channel,
-    character_count: message.length,
-    max_length: maxLength,
-    tone: toneGuide[tone] || tone,
-    personalization_fields: ['name'],
-  };
 }
 
 async function recommendChannels(args: any) {
