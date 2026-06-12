@@ -1,3 +1,7 @@
+// WebSocket polyfill MUST be first — before any import that touches Supabase
+import WebSocket from 'ws';
+Object.assign(globalThis, { WebSocket: globalThis.WebSocket || WebSocket });
+
 import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
@@ -8,7 +12,6 @@ import segmentsRouter from './routes/segments.js';
 import analyticsRouter from './routes/analytics.js';
 import webhooksRouter from './routes/webhooks.js';
 import agentRouter from './routes/agent.js';
-
 import { getQueueStats } from './queue/producer.js';
 
 config();

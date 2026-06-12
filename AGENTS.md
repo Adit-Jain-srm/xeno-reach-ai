@@ -34,11 +34,22 @@
 - Supabase project ref: fezjpfcrikzirfypjjcp
 - Supabase URL: https://fezjpfcrikzirfypjjcp.supabase.co
 - Azure OpenAI endpoint: https://aditjain2005-0132-resource.openai.azure.com
-- Azure OpenAI deployment name: gpt-4o (API version 2025-01-01-preview)
+- Azure OpenAI deployment name: gpt-4o (API version 2025-01-01-preview); gpt-4o-mini and gpt-5.3-chat do NOT work on this resource
 - Vercel scope: aj5
+- Vercel project name: xenoreach.ai (has deployment protection — must disable for public access)
+- Railway project: 849038b9-555d-4df2-adee-503069d11cec
+- Railway backend URL: https://backend-production-33a3.up.railway.app
+- Railway channel-service URL: channel-service-production-7233.up.railway.app
+- Railway requires Root Directory set per service: `backend` and `channel-service` respectively
+- Railway uses Node 20 — requires `ws` package + `globalThis.WebSocket = WebSocket` polyfill for Supabase
 - Frontend dev port: 5173, Backend: 3001, Channel Service: 3002
 - Webhook secret shared between services: reachai-webhook-secret-2026
 - Monorepo structure: /frontend, /backend, /channel-service, /shared, /scripts, /tests, /docs
+- Each Railway service needs its own `railway.json` in its subdirectory
 - Seed data target: 10K customers, 50K+ orders, 5 historical campaigns
 - A `.cursor/rules/diagrams.mdc` rule enforces Mermaid-only diagrams in markdown files
 - Event-sourced communication status via append-only `communication_events` table + Postgres triggers
+- Vercel build requires `--legacy-peer-deps` due to vite 7/8 peer dep conflict with vitest
+- react-router-dom must be v6 (v7 removed BrowserRouter which the app uses)
+- Vercel inline env vars in buildCommand to avoid newline issues: `VITE_API_URL=... npx vite build`
+- Frontend `react-is` package must be explicitly installed (recharts peer dep not auto-resolved)

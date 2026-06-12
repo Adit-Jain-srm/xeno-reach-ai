@@ -1,8 +1,4 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import WebSocket from 'ws';
-
-// Polyfill WebSocket for Node.js < 22 (required by Supabase Realtime)
-Object.assign(globalThis, { WebSocket: globalThis.WebSocket || WebSocket });
 
 let supabase: SupabaseClient;
 
