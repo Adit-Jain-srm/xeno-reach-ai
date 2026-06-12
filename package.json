@@ -1,0 +1,30 @@
+{
+  "name": "xeno-reach-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ReachAI — AI-Native Mini CRM for BrewPulse",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "channel-service",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:channel\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:channel": "npm run dev --workspace=channel-service",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspaces",
+    "seed": "npx tsx scripts/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.1.0",
+    "@types/node": "^22.10.0"
+  }
+}
