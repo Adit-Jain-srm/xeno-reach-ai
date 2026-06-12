@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd frontend && npm install --legacy-peer-deps && npx vite build",
+  "buildCommand": "cd frontend && npm install --legacy-peer-deps && VITE_API_URL=https://backend-production-33a3.up.railway.app/api npx vite build",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "vite",
