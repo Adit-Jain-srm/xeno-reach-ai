@@ -1,8 +1,10 @@
 import type { SendMessageRequest } from '../../../shared/types.js';
+import { config } from 'dotenv';
 
-const CHANNEL_SERVICE_URL = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3002';
+config();
+
 const BATCH_SIZE = 50;
-const RATE_LIMIT_PER_SECOND = 100;
+const RATE_LIMIT_DELAY_MS = 500;
 
 interface QueuedMessage {
   communication_id: string;
@@ -22,9 +24,12 @@ interface QueuedMessage {
 
 let sendQueue: QueuedMessage[] = [];
 let isProcessing = false;
+let totalSent = 0;
+let totalFailed = 0;
 
 export function enqueueMessages(messages: QueuedMessage[]) {
   sendQueue.push(...messages);
+  console.log(`[Queue] Enqueued ${messages.length} messages. Total pending: ${sendQueue.length}`);
   if (!isProcessing) {
     processQueue();
   }
@@ -34,27 +39,39 @@ async function processQueue() {
   if (isProcessing || sendQueue.length === 0) return;
   isProcessing = true;
 
-  while (sendQueue.length > 0) {
-    const batch = sendQueue.splice(0, BATCH_SIZE);
+  try {
+    while (sendQueue.length > 0) {
+      const batch = sendQueue.splice(0, BATCH_SIZE);
 
-    const promises = batch.map(msg => sendToChannelService(msg));
-    const results = await Promise.allSettled(promises);
+      const promises = batch.map(msg => sendToChannelService(msg));
+      const results = await Promise.allSettled(promises);
 
-    const failed = results.filter(r => r.status === 'rejected');
-    if (failed.length > 0) {
-      console.warn(`[Queue] ${failed.length}/${batch.length} messages failed to send to channel service`);
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      totalSent += succeeded;
+      totalFailed += failed;
+
+      if (failed > 0) {
+        console.warn(`[Queue] Batch: ${succeeded} sent, ${failed} failed. Remaining: ${sendQueue.length}`);
+      }
+
+      if (sendQueue.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
+      }
     }
-
-    // Rate limiting: pause between batches
+  } catch (err) {
+    console.error('[Queue] processQueue crashed:', (err as Error).message);
+  } finally {
+    isProcessing = false;
     if (sendQueue.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, (BATCH_SIZE / RATE_LIMIT_PER_SECOND) * 1000));
+      setTimeout(processQueue, 1000);
     }
   }
-
-  isProcessing = false;
 }
 
 async function sendToChannelService(msg: QueuedMessage): Promise<void> {
+  const channelServiceUrl = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3002';
+
   const payload: SendMessageRequest = {
     communication_id: msg.communication_id,
     campaign_id: msg.campaign_id,
@@ -63,10 +80,11 @@ async function sendToChannelService(msg: QueuedMessage): Promise<void> {
     message: msg.message,
   };
 
-  const response = await fetch(`${CHANNEL_SERVICE_URL}/api/send`, {
+  const response = await fetch(`${channelServiceUrl}/api/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!response.ok && response.status !== 202) {
@@ -78,5 +96,7 @@ export function getQueueStats() {
   return {
     pending: sendQueue.length,
     is_processing: isProcessing,
+    total_sent: totalSent,
+    total_failed: totalFailed,
   };
 }

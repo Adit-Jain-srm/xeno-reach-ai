@@ -9,6 +9,8 @@ import analyticsRouter from './routes/analytics.js';
 import webhooksRouter from './routes/webhooks.js';
 import agentRouter from './routes/agent.js';
 
+import { getQueueStats } from './queue/producer.js';
+
 config();
 
 const app = express();
@@ -20,9 +22,20 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'crm-backend', timestamp: new Date().toISOString() });
+// Health check with system status
+app.get('/api/health', async (_req, res) => {
+  const queue = getQueueStats();
+  res.json({
+    status: 'ok',
+    service: 'crm-backend',
+    timestamp: new Date().toISOString(),
+    config: {
+      supabase: !!process.env.SUPABASE_URL,
+      azure_openai: !!process.env.AZURE_OPENAI_API_KEY,
+      channel_service: process.env.CHANNEL_SERVICE_URL || 'http://localhost:3002',
+    },
+    queue,
+  });
 });
 
 // Mount routes

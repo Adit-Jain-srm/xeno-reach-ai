@@ -166,14 +166,26 @@ export async function launchCampaign(campaignId: string) {
     };
   });
 
-  // Fetch actual communication IDs from DB for queue dispatch
-  const { data: insertedComms } = await supabase
-    .from('communications')
-    .select('id, customer_id')
-    .eq('campaign_id', campaignId);
+  // Fetch actual communication IDs from DB for queue dispatch (handle Supabase 1000 row limit)
+  const allInsertedComms: Array<{ id: string; customer_id: string }> = [];
+  let fetchOffset = 0;
+  const FETCH_PAGE_SIZE = 1000;
 
-  if (insertedComms) {
-    const customerToCommId = new Map(insertedComms.map(c => [c.customer_id, c.id]));
+  while (true) {
+    const { data: batch } = await supabase
+      .from('communications')
+      .select('id, customer_id')
+      .eq('campaign_id', campaignId)
+      .range(fetchOffset, fetchOffset + FETCH_PAGE_SIZE - 1);
+
+    if (!batch || batch.length === 0) break;
+    allInsertedComms.push(...batch);
+    if (batch.length < FETCH_PAGE_SIZE) break;
+    fetchOffset += FETCH_PAGE_SIZE;
+  }
+
+  if (allInsertedComms.length > 0) {
+    const customerToCommId = new Map(allInsertedComms.map(c => [c.customer_id, c.id]));
     const dispatchMessages = queueMessages.map(msg => ({
       ...msg,
       communication_id: customerToCommId.get(msg.recipient.customer_id) || msg.communication_id,
