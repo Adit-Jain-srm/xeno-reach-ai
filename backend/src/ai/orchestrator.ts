@@ -2,6 +2,7 @@ import { AzureOpenAI } from 'openai';
 import { SYSTEM_PROMPT, SELF_AUDIT_PROMPT } from './prompts.js';
 import { AGENT_TOOLS } from './tools.js';
 import { executeToolCall } from './tool-executor.js';
+import { supabase } from '../db/supabase.js';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 const openai = new AzureOpenAI({
@@ -226,18 +227,21 @@ Message: ${plan.message_preview}
   }
 }
 
-// Streaming version for SSE
+// Context-aware streaming version with real token-by-token SSE
 export async function* processAgentMessageStream(
   userMessage: string,
   sessionHistory: ChatCompletionMessageParam[] = []
 ): AsyncGenerator<{ type: string; data: any }> {
+  // Build context-aware system prompt by injecting recent data
+  const contextPrompt = await buildContextualPrompt();
+
   const messages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: contextPrompt },
     ...sessionHistory,
     { role: 'user', content: userMessage },
   ];
 
-  yield { type: 'thinking', data: { step: 'Analyzing your request...' } };
+  yield { type: 'status', data: { step: 'Understanding your goal...' } };
 
   let iterations = 0;
   const maxIterations = 10;
@@ -246,6 +250,7 @@ export async function* processAgentMessageStream(
   while (iterations < maxIterations) {
     iterations++;
 
+    // First check if model wants to call tools (non-streaming for tool calls)
     const completion = await openai.chat.completions.create({
       model: MODEL_STRATEGY,
       messages,
@@ -255,37 +260,107 @@ export async function* processAgentMessageStream(
 
     const choice = completion.choices[0];
     const assistantMessage = choice.message;
-    messages.push(assistantMessage);
 
-    if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
-      yield { type: 'message', data: { content: assistantMessage.content } };
-      break;
+    // If tool calls, execute them and yield progress
+    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+      messages.push(assistantMessage);
+
+      for (const toolCall of assistantMessage.tool_calls) {
+        const args = JSON.parse(toolCall.function.arguments);
+
+        yield { type: 'tool_start', data: { name: toolCall.function.name, arguments: args } };
+
+        const startTime = Date.now();
+        const result = await executeToolCall(toolCall.function.name, args);
+        const duration = Date.now() - startTime;
+
+        toolCalls.push({ name: toolCall.function.name, arguments: args, result, duration_ms: duration });
+
+        yield { type: 'tool_end', data: { name: toolCall.function.name, result, duration_ms: duration } };
+
+        messages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: JSON.stringify(result),
+        });
+
+        if (toolCall.function.name === 'create_campaign' && result?.id) {
+          yield { type: 'campaign_created', data: result };
+        }
+      }
+
+      yield { type: 'status', data: { step: 'Synthesizing results...' } };
+      continue;
     }
 
-    for (const toolCall of assistantMessage.tool_calls) {
-      const args = JSON.parse(toolCall.function.arguments);
+    // No tool calls — stream the final response token by token
+    yield { type: 'stream_start', data: {} };
 
-      yield { type: 'tool_call', data: { name: toolCall.function.name, arguments: args } };
+    const stream = await openai.chat.completions.create({
+      model: MODEL_STRATEGY,
+      messages,
+      stream: true,
+    });
 
-      const startTime = Date.now();
-      const result = await executeToolCall(toolCall.function.name, args);
-      const duration = Date.now() - startTime;
-
-      toolCalls.push({ name: toolCall.function.name, arguments: args, result, duration_ms: duration });
-
-      yield { type: 'tool_result', data: { name: toolCall.function.name, result, duration_ms: duration } };
-
-      messages.push({
-        role: 'tool',
-        tool_call_id: toolCall.id,
-        content: JSON.stringify(result),
-      });
-
-      if (toolCall.function.name === 'create_campaign' && result?.id) {
-        yield { type: 'campaign_plan', data: result };
+    let fullContent = '';
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        fullContent += delta;
+        yield { type: 'token', data: { content: delta } };
       }
     }
+
+    yield { type: 'stream_end', data: { full_content: fullContent } };
+    break;
   }
 
-  yield { type: 'done', data: { tool_calls: toolCalls } };
+  yield { type: 'done', data: { tool_calls: toolCalls, iterations } };
+}
+
+// Build context-aware system prompt with live data summaries
+async function buildContextualPrompt(): Promise<string> {
+  let context = SYSTEM_PROMPT;
+
+  try {
+    // Inject recent campaign performance as context
+    const { data: recentCampaigns } = await supabase
+      .from('campaigns')
+      .select('name, status, channels, audience_count, ai_confidence_score, campaign_stats(delivery_rate, open_rate, click_rate)')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (recentCampaigns && recentCampaigns.length > 0) {
+      const campaignSummary = recentCampaigns.map((c: any) => {
+        const stats = c.campaign_stats?.[0];
+        return `- "${c.name}" (${c.status}): ${c.channels?.join('+')} to ${c.audience_count} customers` +
+          (stats ? ` → ${stats.delivery_rate}% delivered, ${stats.open_rate}% opened, ${stats.click_rate}% clicked` : '');
+      }).join('\n');
+
+      context += `\n\n## Recent Campaign Performance (use this to inform recommendations)\n${campaignSummary}`;
+    }
+
+    // Inject customer base summary
+    const { count: totalCustomers } = await supabase
+      .from('customers')
+      .select('id', { count: 'exact', head: true });
+
+    const { data: tierDist } = await supabase
+      .from('customers')
+      .select('loyalty_tier');
+
+    if (tierDist) {
+      const tiers: Record<string, number> = {};
+      for (const c of tierDist) {
+        tiers[c.loyalty_tier] = (tiers[c.loyalty_tier] || 0) + 1;
+      }
+      const tierSummary = Object.entries(tiers).map(([t, n]) => `${t}: ${n}`).join(', ');
+      context += `\n\n## Customer Base Context\nTotal: ${totalCustomers} customers\nLoyalty distribution: ${tierSummary}`;
+    }
+  } catch (err) {
+    // Context enrichment is best-effort — don't fail the request
+    console.warn('[Context] Failed to enrich prompt:', (err as Error).message);
+  }
+
+  return context;
 }

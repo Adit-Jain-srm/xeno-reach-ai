@@ -60,6 +60,7 @@ graph TD
 | **Two-Service Callback Loop** | CRM → Channel Service → webhook callbacks. Retry with exponential backoff, idempotency keys, dead letter queue. |
 | **Live Delivery Pulse** | Supabase Realtime subscriptions make the campaign funnel animate live as webhooks arrive. |
 | **Visible Chain of Thought** | Agent shows which tools it called, what it found, and why it made each decision. Not a black box. |
+| **Streaming SSE + Context-Aware** | Token-by-token streaming via Server-Sent Events. Agent auto-injects recent campaign performance and customer base stats into its reasoning context. |
 | **Smart Channel Routing** | Per-customer channel selection based on preference and engagement data — not blast-all. |
 
 ---
@@ -196,6 +197,20 @@ flowchart TD
 
 **Tools available to the agent:**
 `query_customers` · `analyze_audience` · `generate_message` · `recommend_channels` · `estimate_performance` · `create_campaign` · `get_past_campaigns` · `launch_campaign`
+
+**Streaming SSE Protocol:**
+The agent streams responses token-by-token via SSE events:
+- `status` — thinking/processing state changes
+- `tool_start` / `tool_end` — real-time tool execution progress
+- `token` — individual content tokens (for typewriter effect)
+- `campaign_created` — inline campaign card data
+- `done` — final summary with all tool calls
+
+**Context Awareness:**
+Before each conversation, the agent automatically injects:
+- Last 5 campaign results (name, channel, delivery/open/click rates)
+- Customer base summary (total count, loyalty tier distribution)
+- This makes recommendations data-driven without the user needing to ask "what worked before?"
 
 ---
 
