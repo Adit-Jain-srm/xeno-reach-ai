@@ -1,31 +1,29 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 
 config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-
 let supabase: SupabaseClient;
 
-if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey, {
+try {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+
+  if (!url || !key) throw new Error('Missing env vars');
+
+  supabase = createClient(url, key, {
     auth: { persistSession: false },
     db: { schema: 'public' },
   });
-} else {
-  console.warn('[Supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_KEY — using mock client');
-  // Create a no-op proxy that won't crash the server on startup
-  supabase = new Proxy({} as SupabaseClient, {
-    get: (_target, prop) => {
-      if (prop === 'from') {
-        return () => new Proxy({}, {
-          get: () => () => Promise.resolve({ data: null, error: { message: 'Supabase not configured', code: 'NOT_CONFIGURED' }, count: 0 }),
-        });
-      }
-      return () => ({});
-    },
+  console.log('[Supabase] Connected to', url);
+} catch {
+  console.warn('[Supabase] Not configured — running in demo mode without database');
+  const mockResponse = { data: null, error: null, count: 0 };
+  const mockChain: any = new Proxy({}, {
+    get: () => (..._args: any[]) => mockChain,
   });
+  mockChain.then = (resolve: any) => resolve(mockResponse);
+  supabase = { from: () => mockChain, channel: () => ({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }), removeChannel: () => {} } as any;
 }
 
 export { supabase };
