@@ -186,7 +186,7 @@ export async function launchCampaign(campaignId: string) {
 
   if (allInsertedComms.length > 0) {
     const customerToCommId = new Map(allInsertedComms.map(c => [c.customer_id, c.id]));
-    const dispatchMessages = queueMessages.map(msg => ({
+    const dispatchMessages = queueMessages.map((msg: any) => ({
       ...msg,
       communication_id: customerToCommId.get(msg.recipient.customer_id) || msg.communication_id,
     }));

@@ -72,7 +72,7 @@ async function updateCustomerAggregates(customerId: string) {
 
   if (!orders || orders.length === 0) return;
 
-  const totalSpent = orders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+  const totalSpent = orders.reduce((sum: number, o: any) => sum + Number(o.total_amount), 0);
   const avgOrderValue = totalSpent / orders.length;
 
   await supabase
