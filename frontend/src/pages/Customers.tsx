@@ -205,37 +205,63 @@ export default function Customers() {
       </AnimatePresence>
 
       {/* Import Modal */}
-      <Modal open={showImport} onClose={() => setShowImport(false)} title="Import Customers" description="Paste JSON array of customer objects" size="lg">
-        <div className="space-y-3">
-          <textarea
-            value={importJson}
-            onChange={e => setImportJson(e.target.value)}
-            placeholder={`[{"name":"Priya Sharma","email":"priya@example.com","phone":"+919876543210","city":"Mumbai","loyalty_tier":"gold","total_orders":12,"total_spent":8500}]`}
-            className="w-full h-40 px-3 py-2 rounded-md bg-bg-2 border border-border-subtle text-xs text-txt-0 placeholder:text-txt-4 focus:outline-none focus:border-accent/50 font-mono resize-none"
-          />
-          <p className="text-2xs text-txt-4">Required fields: name. Optional: email, phone, city, loyalty_tier, total_orders, total_spent, preferred_channel</p>
-          <ModalActions>
-            <Button variant="secondary" onClick={() => setShowImport(false)}>Cancel</Button>
-            <Button
-              variant="primary"
-              disabled={importing || !importJson.trim()}
-              onClick={async () => {
-                setImporting(true)
-                try {
-                  const parsed = JSON.parse(importJson)
-                  const { data: result } = await api.post('/customers/bulk', parsed)
-                  toast('success', 'Import complete', `${result.inserted || parsed.length} customers imported`)
-                  setShowImport(false); setImportJson('')
-                } catch (e: any) {
-                  toast('error', 'Import failed', e.message?.includes('JSON') ? 'Invalid JSON format' : e.response?.data?.error || e.message)
-                } finally { setImporting(false) }
-              }}
-            >
-              <Upload size={11} /> {importing ? 'Importing...' : 'Import'}
-            </Button>
-          </ModalActions>
-        </div>
+      <Modal open={showImport} onClose={() => setShowImport(false)} title="Import Data" description="Bulk import customers or orders" size="lg">
+        <ImportModalContent onClose={() => setShowImport(false)} toast={toast} />
       </Modal>
+    </div>
+  )
+}
+
+function ImportModalContent({ onClose, toast }: { onClose: () => void; toast: any }) {
+  const [tab, setTab] = useState<'customers' | 'orders'>('customers')
+  const [importJson, setImportJson] = useState('')
+  const [importing, setImporting] = useState(false)
+
+  const handleImport = async () => {
+    setImporting(true)
+    try {
+      const parsed = JSON.parse(importJson)
+      if (!Array.isArray(parsed)) throw new Error('Must be a JSON array')
+      const endpoint = tab === 'customers' ? '/customers/bulk' : '/orders/bulk'
+      const { data: result } = await api.post(endpoint, parsed)
+      toast('success', `${tab === 'customers' ? 'Customers' : 'Orders'} imported`, `${result.inserted || parsed.length} records added`)
+      onClose()
+    } catch (e: any) {
+      toast('error', 'Import failed', e.message?.includes('JSON') ? 'Invalid JSON format' : e.response?.data?.error || e.message)
+    } finally { setImporting(false) }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1 p-0.5 bg-bg-2 rounded-lg w-fit">
+        <button onClick={() => setTab('customers')} className={cn('px-3 py-1.5 rounded-md text-xs font-medium transition-colors', tab === 'customers' ? 'bg-bg-1 text-txt-0 shadow-sm' : 'text-txt-2')}>
+          Customers
+        </button>
+        <button onClick={() => setTab('orders')} className={cn('px-3 py-1.5 rounded-md text-xs font-medium transition-colors', tab === 'orders' ? 'bg-bg-1 text-txt-0 shadow-sm' : 'text-txt-2')}>
+          Orders
+        </button>
+      </div>
+      <textarea
+        value={importJson}
+        onChange={e => setImportJson(e.target.value)}
+        placeholder={tab === 'customers'
+          ? `[{"name":"Priya Sharma","email":"priya@example.com","phone":"+919876543210","city":"Mumbai","loyalty_tier":"gold","total_orders":12,"total_spent":8500}]`
+          : `[{"customer_id":"uuid-here","items":[{"name":"Cold Brew","category":"coffee","quantity":1,"price":350}],"total_amount":350,"store_location":"Mumbai Central","order_date":"2026-06-01"}]`
+        }
+        className="w-full h-40 px-3 py-2 rounded-md bg-bg-2 border border-border text-xs text-txt-0 placeholder:text-txt-3 focus:outline-none focus:border-accent/50 font-mono resize-none"
+      />
+      <p className="text-xs text-txt-2">
+        {tab === 'customers'
+          ? 'Required: name. Optional: email, phone, city, loyalty_tier, total_orders, total_spent, preferred_channel, favorite_items'
+          : 'Required: customer_id, items, total_amount. Optional: store_location, order_date, payment_method'
+        }
+      </p>
+      <ModalActions>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" disabled={importing || !importJson.trim()} onClick={handleImport}>
+          <Upload size={11} /> {importing ? 'Importing...' : `Import ${tab}`}
+        </Button>
+      </ModalActions>
     </div>
   )
 }

@@ -136,6 +136,62 @@ export default function Analytics() {
           )}
         </div>
 
+        {/* Campaign Performance Table */}
+        {campaigns?.data?.length > 0 && (
+          <div className="panel rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <span className="text-xs font-semibold text-txt-0">Campaign Performance Breakdown</span>
+              <span className="text-2xs text-txt-2">{campaigns.data.length} campaigns</span>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-2xs text-txt-2 border-b border-border">
+                  <th className="text-left px-4 py-2 font-medium">Campaign</th>
+                  <th className="text-left px-3 py-2 font-medium">Channel</th>
+                  <th className="text-right px-3 py-2 font-medium">Audience</th>
+                  <th className="text-right px-3 py-2 font-medium">Sent</th>
+                  <th className="text-right px-3 py-2 font-medium">Delivered</th>
+                  <th className="text-right px-3 py-2 font-medium">Opened</th>
+                  <th className="text-right px-3 py-2 font-medium">Clicked</th>
+                  <th className="text-right px-3 py-2 font-medium">Failed</th>
+                  <th className="text-center px-3 py-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {campaigns.data.map((c: any) => {
+                  const s = c.campaign_stats?.[0]
+                  return (
+                    <tr key={c.id} className="hover:bg-bg-2 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <Link to={`/campaigns/${c.id}`} className="text-txt-0 font-medium hover:text-accent transition-colors text-xs">
+                          {c.name}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-txt-2 capitalize">{c.channels?.join(', ')}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-txt-1">{c.audience_count?.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-txt-1">{s?.total_sent?.toLocaleString() || '—'}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs">
+                        <span className="text-semantic-green">{s?.delivery_rate || 0}%</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-txt-1">{s?.open_rate || 0}%</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-signal">{s?.click_rate || 0}%</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-semantic-red">{s?.total_failed || 0}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className={`badge ${
+                          c.status === 'completed' ? 'bg-semantic-green/10 text-semantic-green' :
+                          c.status === 'running' ? 'bg-semantic-blue/10 text-semantic-blue' :
+                          c.status === 'failed' ? 'bg-semantic-red/10 text-semantic-red' :
+                          'bg-bg-3 text-txt-2'
+                        }`}>{c.status}</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* AI Insights Panel */}
         <div className="panel rounded-lg p-4 space-y-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-txt-1">
