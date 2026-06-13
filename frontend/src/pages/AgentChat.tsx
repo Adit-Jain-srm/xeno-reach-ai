@@ -225,7 +225,7 @@ export default function AgentChat() {
       {/* Main Chat */}
       <div className="flex-1 flex flex-col">
         <header className="h-12 flex items-center px-5 border-b border-border-subtle flex-shrink-0 gap-3">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center">
+          <div className="w-6 h-6 rounded-md bg-carbon flex items-center justify-center">
             <Bot size={12} className="text-white" />
           </div>
           <h1 className="text-md font-semibold text-txt-0">AI Marketing Agent</h1>
@@ -241,8 +241,8 @@ export default function AgentChat() {
           <AnimatePresence>
             {msgs.length === 0 && !streaming.isStreaming && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-purple-500/20 border border-accent/20 flex items-center justify-center mb-5">
-                  <Sparkles size={24} className="text-accent" />
+              <div className="w-14 h-14 rounded-2xl bg-signal/10 border border-signal/20 flex items-center justify-center mb-5">
+                <Sparkles size={24} className="text-signal" />
                 </div>
                 <p className="text-lg font-semibold text-txt-0 mb-1">What campaign shall we run?</p>
                 <p className="text-sm text-txt-3 mb-8 text-center max-w-lg">
@@ -262,7 +262,7 @@ export default function AgentChat() {
           {msgs.map((m, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={cn('flex gap-3', m.role === 'user' && 'justify-end')}>
               {m.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm shadow-accent/20">
+                <div className="w-7 h-7 rounded-lg bg-carbon flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Bot size={13} className="text-white" />
                 </div>
               )}
@@ -313,7 +313,7 @@ export default function AgentChat() {
                       <div className="flex justify-between"><span className="text-txt-4">Audience</span><span className="font-mono text-txt-0">{m.campaign.audience_count?.toLocaleString()}</span></div>
                       <div className="flex justify-between"><span className="text-txt-4">Channels</span><span className="capitalize">{m.campaign.channels?.join(', ')}</span></div>
                     </div>
-                    <button onClick={() => nav(`/campaigns/${m.campaign.id}`)} className="w-full py-2 rounded-lg bg-gradient-to-r from-accent to-purple-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:shadow-accent/20 transition-all duration-200 hover:-translate-y-px flex items-center justify-center gap-1.5">
+                    <button onClick={() => nav(`/campaigns/${m.campaign.id}`)} className="w-full py-2.5 rounded-xl bg-carbon text-white text-sm font-medium hover:bg-graphite transition-all flex items-center justify-center gap-1.5">
                       View & Launch <ArrowRight size={12} />
                     </button>
                   </motion.div>
@@ -325,7 +325,7 @@ export default function AgentChat() {
           {/* Live streaming state */}
           {streaming.isStreaming && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm shadow-accent/20">
+              <div className="w-7 h-7 rounded-lg bg-carbon flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Loader2 size={13} className="text-white animate-spin" />
               </div>
               <div className="max-w-[78%] rounded-xl px-4 py-3 bg-bg-2 border border-border-subtle space-y-3">
@@ -421,7 +421,7 @@ export default function AgentChat() {
               className="flex-1 px-4 py-2.5 rounded-lg bg-bg-2 border border-border-subtle text-sm text-txt-0 placeholder:text-txt-4 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all"
               disabled={streaming.isStreaming}
             />
-            <button onClick={sendStreaming} disabled={streaming.isStreaming || !input.trim()} className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-accent to-purple-500 hover:shadow-lg hover:shadow-accent/20 disabled:opacity-30 text-white transition-all duration-200 hover:-translate-y-px disabled:hover:translate-y-0">
+            <button onClick={sendStreaming} disabled={streaming.isStreaming || !input.trim()} className="px-4 py-2.5 rounded-xl bg-carbon hover:bg-graphite disabled:opacity-30 text-white transition-all disabled:hover:translate-y-0">
               <Send size={15} />
             </button>
           </div>

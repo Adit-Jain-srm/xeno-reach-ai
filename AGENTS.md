@@ -27,7 +27,6 @@
 - User prefers streaming agent responses with visible reasoning (not spinners)
 - Prefer bold, opinionated product choices over building everything shallowly
 - **Design: Bloomberg Terminal meets Linear.app** — data-dense, information-first, functional beauty from density
-- **REJECTED glass morphism / gradient meshes / decorative elements** — felt too "AI template" and generic
 - Color ONLY for semantic meaning (green=success, red=failure, amber=pending, blue=active, indigo=interactive)
 - Typography: Satoshi (text/headings) + JetBrains Mono (ALL data values, monospace tabular nums)
 - 13px base font, compact spacing, maximum information per pixel

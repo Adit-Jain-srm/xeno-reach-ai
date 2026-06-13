@@ -2,70 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
-    --bg-0: #08080a;
-    --bg-1: #0c0c0f;
-    --bg-2: #111114;
-    --bg-3: #18181b;
-    --bg-4: #1f1f23;
-    --accent: #6366f1;
-    --accent-dim: #4f46e5;
-    --text-0: #fafafa;
-    --text-1: #d4d4d8;
-    --text-2: #a1a1aa;
-    --text-3: #71717a;
-    --text-4: #52525b;
-    --border: #27272a;
-    --border-subtle: #1e1e21;
-    --green: #22c55e;
-    --red: #ef4444;
-    --amber: #f59e0b;
-    --blue: #3b82f6;
+    --color-signal-orange: #ff682c;
+    --color-sienna-bronze: #816729;
+    --color-carbon: #202020;
+    --color-graphite: #4d4d4d;
+    --color-slate: #828282;
+    --color-fog: #f5f5f5;
+    --color-mist: #efefef;
+    --color-chalk: #e8e8e8;
+    --color-paper: #ffffff;
+
+    --font-polysans: 'Space Grotesk', system-ui, sans-serif;
+    --font-inter: 'Inter', system-ui, sans-serif;
+
+    --radius-cards: 8px;
+    --radius-buttons: 20px;
+    --radius-inputs: 8px;
+    --radius-tags: 20px;
+    --radius-navpill: 200px;
   }
 
   * { box-sizing: border-box; }
 
   body {
     margin: 0;
-    background: var(--bg-0);
-    color: var(--text-1);
-    font-family: 'Satoshi', system-ui, sans-serif;
-    font-size: 13px;
+    background: var(--color-mist);
+    color: var(--color-graphite);
+    font-family: var(--font-inter);
+    font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
   }
 
-  h1, h2, h3 { color: var(--text-0); font-weight: 700; letter-spacing: -0.025em; }
+  h1, h2, h3 {
+    color: var(--color-carbon);
+    font-family: var(--font-polysans);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
 
   input, textarea, select {
-    font-family: inherit;
-    font-size: 13px;
+    font-family: var(--font-inter);
+    font-size: 14px;
   }
 }
 
 @layer components {
   .panel {
-    background: var(--bg-1);
-    border: 1px solid var(--border-subtle);
+    background: var(--color-paper);
+    border: 1px solid var(--color-chalk);
+    border-radius: var(--radius-cards);
   }
 
   .panel-raised {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
+    background: var(--color-fog);
+    border: 1px solid var(--color-chalk);
+    border-radius: var(--radius-cards);
   }
 
   .badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
+    font-family: var(--font-inter);
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.02em;
-    padding: 2px 6px;
-    border-radius: 4px;
+    letter-spacing: 0.01em;
+    padding: 3px 8px;
+    border-radius: var(--radius-tags);
   }
 
   .data-value {
@@ -75,17 +81,63 @@
   }
 
   .kbd {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    padding: 1px 4px;
-    border-radius: 3px;
-    background: var(--bg-3);
-    border: 1px solid var(--border);
-    color: var(--text-3);
+    font-family: var(--font-inter);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--color-fog);
+    border: 1px solid var(--color-chalk);
+    color: var(--color-slate);
+  }
+
+  .btn-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: var(--radius-buttons);
+    font-family: var(--font-inter);
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 150ms ease;
+    cursor: pointer;
+  }
+
+  .btn-pill-filled {
+    background: var(--color-carbon);
+    color: white;
+    border: none;
+  }
+
+  .btn-pill-filled:hover {
+    background: #333;
+  }
+
+  .btn-pill-outlined {
+    background: transparent;
+    color: var(--color-carbon);
+    border: 1px solid var(--color-carbon);
+  }
+
+  .btn-pill-outlined:hover {
+    background: var(--color-fog);
+  }
+
+  .btn-pill-accent {
+    background: var(--color-signal-orange);
+    color: white;
+    border: none;
+  }
+
+  .btn-pill-accent:hover {
+    background: #e55a24;
   }
 }
 
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-::selection { background: rgba(99, 102, 241, 0.25); }
+::-webkit-scrollbar-thumb { background: var(--color-chalk); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #d0d0d0; }
+::selection { background: rgba(255, 104, 44, 0.15); }

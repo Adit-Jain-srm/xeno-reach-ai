@@ -67,7 +67,7 @@ export default function CampaignDetail() {
           </span>
         )}
         {campaign.status === 'draft' && (
-          <button onClick={() => setShowLaunchModal(true)} disabled={launching} className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-accent to-purple-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:shadow-accent/20 disabled:opacity-50 transition-all">
+          <button onClick={() => setShowLaunchModal(true)} disabled={launching} className="ml-auto btn-pill btn-pill-accent text-xs disabled:opacity-50">
             <Rocket size={12} /> {launching ? 'Launching...' : 'Launch Campaign'}
           </button>
         )}

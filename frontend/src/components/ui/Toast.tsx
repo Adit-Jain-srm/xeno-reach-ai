@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 exit={{ opacity: 0, x: 80, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 className={cn(
-                  'pointer-events-auto panel rounded-md border-l-[3px] px-3 py-2.5 flex items-start gap-2.5 min-w-[280px] max-w-[360px] shadow-lg',
+                  'pointer-events-auto panel px-3.5 py-3 flex items-start gap-2.5 min-w-[280px] max-w-[360px] shadow-sm border-l-[3px]',
                   COLORS[t.type]
                 )}
               >
@@ -79,12 +79,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-txt-0">{t.title}</p>
                   {t.description && (
-                    <p className="text-2xs text-txt-3 mt-0.5 truncate">{t.description}</p>
+                    <p className="text-xs text-txt-2 mt-0.5 truncate">{t.description}</p>
                   )}
                 </div>
                 <button
                   onClick={() => dismiss(t.id)}
-                  className="text-txt-4 hover:text-txt-2 transition-colors shrink-0"
+                  className="text-txt-3 hover:text-txt-1 transition-colors shrink-0"
                 >
                   <X size={13} />
                 </button>

@@ -76,10 +76,10 @@ export default function Dashboard() {
   const { data: channels } = useQuery({ queryKey: ['channels'], queryFn: fetchChannelPerformance })
 
   const metrics = [
-    { label: 'Total Customers', value: ov?.total_customers || 0, icon: Users, gradient: 'from-blue-500 to-cyan-400', tooltip: 'Active customer profiles in the BrewPulse database' },
-    { label: 'Campaigns Run', value: ov?.total_campaigns || 0, icon: Megaphone, gradient: 'from-purple-500 to-pink-400', tooltip: 'Total marketing campaigns created and launched' },
-    { label: 'Messages Sent', value: ov?.aggregate?.sent || 0, icon: Send, gradient: 'from-emerald-500 to-teal-400', tooltip: 'Total messages dispatched across all channels' },
-    { label: 'Delivery Rate', value: ov?.overall_delivery_rate || 0, suffix: '%', icon: Target, gradient: 'from-amber-500 to-orange-400', tooltip: 'Percentage of sent messages that reached recipient devices' },
+    { label: 'Total Customers', value: ov?.total_customers || 0, icon: Users, tooltip: 'Active customer profiles in the BrewPulse database' },
+    { label: 'Campaigns Run', value: ov?.total_campaigns || 0, icon: Megaphone, tooltip: 'Total marketing campaigns created and launched' },
+    { label: 'Messages Sent', value: ov?.aggregate?.sent || 0, icon: Send, tooltip: 'Total messages dispatched across all channels' },
+    { label: 'Delivery Rate', value: ov?.overall_delivery_rate || 0, suffix: '%', icon: Target, tooltip: 'Percentage of sent messages that reached recipient devices' },
   ]
 
   return (
@@ -89,26 +89,26 @@ export default function Dashboard() {
           <h1 className="text-md font-semibold text-txt-0">Dashboard</h1>
           <span className="badge bg-semantic-green/10 text-semantic-green">Live</span>
         </div>
-        <Link to="/agent" className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-accent to-purple-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:shadow-accent/20 transition-all duration-200 hover:-translate-y-px">
+        <Link to="/agent" className="btn-pill btn-pill-filled text-sm gap-1.5">
           <Zap size={12} /> New Campaign with AI
         </Link>
       </header>
 
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {/* Metrics */}
-        <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-4 gap-3">
-          {metrics.map(({ label, value, suffix, icon: Icon, gradient, tooltip }) => (
-            <motion.div key={label} variants={fadeUp} className="panel rounded-xl p-4 hover:border-border transition-colors group">
+        <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-4 gap-4">
+          {metrics.map(({ label, value, suffix, icon: Icon, tooltip }) => (
+            <motion.div key={label} variants={fadeUp} className="panel p-5 hover:shadow-sm transition-shadow group">
               <div className="flex items-center justify-between mb-3">
                 <Tooltip content={tooltip} side="bottom">
-                  <span className="text-2xs text-txt-4 font-medium uppercase tracking-wider cursor-help border-b border-dashed border-txt-4/30">{label}</span>
+                  <span className="text-xs text-txt-2 font-medium cursor-help border-b border-dashed border-txt-3/40">{label}</span>
                 </Tooltip>
-                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-200`}>
-                  <Icon size={14} className="text-white" />
+                <div className="w-8 h-8 rounded-lg bg-signal/10 flex items-center justify-center group-hover:bg-signal/15 transition-colors">
+                  <Icon size={15} className="text-signal" />
                 </div>
               </div>
-              <div className="font-mono text-2xl font-bold text-txt-0">
-                {isLoading ? <div className="w-16 h-6 bg-bg-3 rounded animate-pulse" /> : <AnimNum value={value} suffix={suffix} />}
+              <div className="font-mono text-3xl font-bold text-txt-0 tracking-heading">
+                {isLoading ? <div className="w-16 h-7 bg-bg-3 rounded animate-pulse" /> : <AnimNum value={value} suffix={suffix} />}
               </div>
             </motion.div>
           ))}
