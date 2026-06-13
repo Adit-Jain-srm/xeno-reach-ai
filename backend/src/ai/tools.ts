@@ -5,7 +5,7 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'query_customers',
-      description: 'Query the customer database with filters. Returns matching customers with count. Use for audience identification and segmentation.',
+      description: 'Query the customer database with filters. Returns matching customers with count. Use for audience identification and segmentation. IMPORTANT: Use sort_by and limit to get "top N" audiences (e.g., top 100 spenders = sort_by: total_spent, limit: 100).',
       parameters: {
         type: 'object',
         properties: {
@@ -17,7 +17,8 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
           inactive_days: { type: 'number', description: 'Customers inactive for at least N days' },
           preferred_channel: { type: 'string', enum: ['whatsapp', 'sms', 'email', 'rcs'], description: 'Filter by preferred communication channel' },
           segment_tag: { type: 'string', description: 'Filter by segment tag (e.g., churning, high_value, active, loyal, vip, lapsed)' },
-          limit: { type: 'number', description: 'Max results to return (default 10 for preview)' },
+          sort_by: { type: 'string', enum: ['total_spent', 'total_orders', 'engagement_score', 'last_purchase_at'], description: 'Sort field (descending). Use total_spent for top spenders, engagement_score for most engaged.' },
+          limit: { type: 'number', description: 'EXACT number of customers to target. For "top 100 spenders" use 100. This becomes the campaign audience size.' },
         },
         required: [],
       },

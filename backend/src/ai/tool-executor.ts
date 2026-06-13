@@ -30,16 +30,20 @@ async function queryCustomers(args: any) {
     query = query.lt('last_purchase_at', cutoff);
   }
 
+  const sortField = args.sort_by || 'engagement_score';
   const limit = args.limit || 10;
-  query = query.order('engagement_score', { ascending: false }).limit(limit);
+  query = query.order(sortField, { ascending: false }).limit(limit);
 
   const { data, count, error } = await query;
   if (error) return { error: error.message };
 
   return {
-    total_matching: count || 0,
-    sample: data || [],
-    showing: Math.min(limit, data?.length || 0),
+    audience_count: Math.min(limit, count || 0),
+    total_matching_filter: count || 0,
+    showing_top_n: limit,
+    sort_by: sortField,
+    sample: (data || []).slice(0, 5),
+    note: limit < (count || 0) ? `Returning top ${limit} by ${sortField} (out of ${count} total matching)` : `All ${count} matching customers included`,
   };
 }
 
