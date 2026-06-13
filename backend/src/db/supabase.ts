@@ -11,7 +11,13 @@ try {
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: false },
     db: { schema: 'public' },
+    realtime: { params: { eventsPerSecond: 0 } },
+    global: { headers: { 'x-connection-encrypted': 'true' } },
   });
+
+  // Disable realtime connection entirely on backend
+  supabase.realtime.disconnect();
+
   console.log('[Supabase] Connected to ' + SUPABASE_URL);
 } catch (err) {
   console.error('[Supabase] FAILED:', (err as Error).message);

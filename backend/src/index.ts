@@ -1,7 +1,3 @@
-// WebSocket polyfill MUST be first — before any import that touches Supabase
-import WebSocket from 'ws';
-Object.assign(globalThis, { WebSocket: globalThis.WebSocket || WebSocket });
-
 import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
