@@ -1,6 +1,5 @@
 import { supabase } from '../db/supabase.js';
 import { getAudienceCount } from './segment.service.js';
-import { enqueueMessages } from '../queue/producer.js';
 import type { FilterConfig } from '../../../shared/types.js';
 
 export async function listCampaigns(params: { status?: string; page?: number; page_size?: number }) {
@@ -177,47 +176,39 @@ export async function launchCampaign(campaignId: string) {
     if (error) throw error;
   }
 
-  // Dispatch messages to channel service via queue
-  const queueMessages = audience.map((customer: any) => {
-    const channel = channels.length === 1
-      ? channels[0]
-      : customer.preferred_channel || channels[0];
-
-    return {
-      communication_id: `${campaignId}:${customer.id}`,
-      campaign_id: campaignId,
-      recipient: {
-        customer_id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-      },
-      channel,
-      message: {
-        content: messageTemplate
-          .replace(/\{\{name\}\}/g, customer.name || 'there')
-          .replace(/\{\{email\}\}/g, customer.email || ''),
-      },
-    };
-  });
-
-  // Fetch actual communication IDs from DB for queue dispatch (handle Supabase 1000 row limit)
+  // Fetch actual communication IDs from DB (handle Supabase 1000 row limit)
   const allInsertedComms: Array<{ id: string; customer_id: string }> = [];
   let fetchOffset = 0;
   const FETCH_PAGE_SIZE = 1000;
-
   while (true) {
     const { data: batch } = await supabase
       .from('communications')
       .select('id, customer_id')
       .eq('campaign_id', campaignId)
       .range(fetchOffset, fetchOffset + FETCH_PAGE_SIZE - 1);
-
     if (!batch || batch.length === 0) break;
     allInsertedComms.push(...batch);
     if (batch.length < FETCH_PAGE_SIZE) break;
     fetchOffset += FETCH_PAGE_SIZE;
   }
+
+  // Build dispatch messages with real DB UUIDs
+  const queueMessages = audience.map((customer: any) => {
+    const channel = channels.length === 1
+      ? channels[0]
+      : customer.preferred_channel || channels[0];
+    return {
+      communication_id: `${campaignId}:${customer.id}`,
+      campaign_id: campaignId,
+      recipient: { customer_id: customer.id, name: customer.name, email: customer.email, phone: customer.phone },
+      channel,
+      message: { content: messageTemplate.replace(/\{\{name\}\}/g, customer.name || 'there') },
+    };
+  });
+
+  // Dispatch messages to channel service (direct, not via in-memory queue)
+  const channelServiceUrl = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3002';
+  console.log(`[Launch] Dispatching ${allInsertedComms.length} messages to ${channelServiceUrl}`);
 
   if (allInsertedComms.length > 0) {
     const customerToCommId = new Map(allInsertedComms.map(c => [c.customer_id, c.id]));
@@ -225,7 +216,43 @@ export async function launchCampaign(campaignId: string) {
       ...msg,
       communication_id: customerToCommId.get(msg.recipient.customer_id) || msg.communication_id,
     }));
-    enqueueMessages(dispatchMessages);
+
+    // Dispatch in batches of 50 with rate limiting
+    const DISPATCH_BATCH = 50;
+    let dispatched = 0;
+    let failed = 0;
+
+    for (let i = 0; i < dispatchMessages.length; i += DISPATCH_BATCH) {
+      const batch = dispatchMessages.slice(i, i + DISPATCH_BATCH);
+      const results = await Promise.allSettled(
+        batch.map(async (msg: any) => {
+          const response = await fetch(`${channelServiceUrl}/api/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              communication_id: msg.communication_id,
+              campaign_id: msg.campaign_id,
+              recipient: msg.recipient,
+              channel: msg.channel,
+              message: msg.message,
+            }),
+            signal: AbortSignal.timeout(10000),
+          });
+          if (!response.ok && response.status !== 202) {
+            throw new Error(`Channel service returned ${response.status}`);
+          }
+        })
+      );
+
+      dispatched += results.filter(r => r.status === 'fulfilled').length;
+      failed += results.filter(r => r.status === 'rejected').length;
+
+      if (i + DISPATCH_BATCH < dispatchMessages.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+
+    console.log(`[Launch] Dispatch complete: ${dispatched} sent, ${failed} failed`);
   }
 
   return {

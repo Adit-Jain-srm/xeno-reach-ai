@@ -54,8 +54,8 @@ const CHANNEL_CONFIG: Record<string, { deliveryRate: number; openRate: number; r
 };
 
 // Demo mode: much faster for live demonstrations
-const DEMO_MODE = process.env.DEMO_MODE === 'true';
-const DEMO_SPEED_FACTOR = 0.1; // 10x faster in demo mode
+const DEMO_MODE = process.env.DEMO_MODE !== 'false'; // Default to demo mode
+const DEMO_SPEED_FACTOR = 0.05; // 20x faster in demo mode
 
 function randomDelay(range: [number, number]): number {
   const [min, max] = range;
@@ -65,7 +65,7 @@ function randomDelay(range: [number, number]): number {
 
 async function simulateDelivery(communicationId: string, channel: string) {
   const config = CHANNEL_CONFIG[channel] || CHANNEL_CONFIG.whatsapp;
-  const webhookUrl = process.env.CRM_WEBHOOK_URL || 'http://localhost:3001/api/webhooks/delivery';
+  const webhookUrl = process.env.CRM_WEBHOOK_URL || 'https://xeno-reach-ai-production.up.railway.app/api/webhooks/delivery';
 
   try {
     // Step 1: "sent" event (immediate)
@@ -130,7 +130,7 @@ async function emitCallback(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Webhook-Secret': process.env.CHANNEL_WEBHOOK_SECRET || '',
+          'X-Webhook-Secret': process.env.CHANNEL_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || 'reachai-webhook-secret-2026',
         },
         body: JSON.stringify(payload),
       });
