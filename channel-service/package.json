@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": { "node": ">=20" },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "echo 'Using tsx for runtime'",
+    "build": "echo 'skip'",
     "start": "node --import tsx src/index.ts"
   },
   "dependencies": {
