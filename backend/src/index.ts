@@ -25,6 +25,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// Request timeout — prevent Supabase hangs from blocking indefinitely
+app.use((_req, res, next) => {
+  res.setTimeout(15000, () => {
+    if (!res.headersSent) {
+      res.status(504).json({ error: 'Gateway Timeout', message: 'Request took too long. Database may not be initialized — run scripts/migrate.sql in Supabase SQL Editor.' });
+    }
+  });
+  next();
+});
+
 // Health check with system status
 app.get('/api/health', async (_req, res) => {
   const queue = getQueueStats();
@@ -41,14 +51,16 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
-// Diagnostic: test Supabase query directly
+// Diagnostic: test Supabase query directly with timeout
 app.get('/api/diag', async (_req, res) => {
   try {
     const { supabase } = await import('./db/supabase.js');
     const start = Date.now();
-    const { data, error, count } = await supabase.from('customers').select('id', { count: 'exact', head: true });
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Query timeout (5s)')), 5000));
+    const query = supabase.from('customers').select('id', { count: 'exact', head: true });
+    const result: any = await Promise.race([query, timeout]);
     const duration = Date.now() - start;
-    res.json({ ok: !error, duration_ms: duration, count, error: error?.message || null });
+    res.json({ ok: !result.error, duration_ms: duration, count: result.count, error: result.error?.message || null });
   } catch (err: any) {
     res.json({ ok: false, error: err.message });
   }
