@@ -78,6 +78,8 @@ router.post('/chat/stream', async (req, res) => {
 
   try {
     let sessionHistory: any[] = [];
+    let currentSessionId = session_id;
+
     if (session_id) {
       const { data: session } = await supabase
         .from('agent_sessions')
@@ -89,11 +91,46 @@ router.post('/chat/stream', async (req, res) => {
 
     const stream = processAgentMessageStream(message, sessionHistory);
 
+    let fullContent = '';
+    const toolCalls: any[] = [];
+    let campaignData: any = null;
+
     for await (const event of stream) {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
+
+      if (event.type === 'token') fullContent += event.data.content;
+      if (event.type === 'stream_end') fullContent = event.data.full_content || fullContent;
+      if (event.type === 'tool_end') toolCalls.push(event.data);
+      if (event.type === 'campaign_created') campaignData = event.data;
     }
 
-    res.write(`data: ${JSON.stringify({ type: 'end' })}\n\n`);
+    // Persist session after stream completes
+    const updatedMessages = [
+      ...sessionHistory,
+      { role: 'user', content: message, timestamp: new Date().toISOString() },
+      { role: 'assistant', content: fullContent, timestamp: new Date().toISOString() },
+    ];
+
+    if (currentSessionId) {
+      await supabase
+        .from('agent_sessions')
+        .update({ messages: updatedMessages, tool_calls: toolCalls })
+        .eq('id', currentSessionId);
+    } else {
+      const { data: newSession } = await supabase
+        .from('agent_sessions')
+        .insert({
+          messages: updatedMessages,
+          tool_calls: toolCalls,
+          campaign_id: campaignData?.id || null,
+        })
+        .select('id')
+        .single();
+      if (newSession) currentSessionId = newSession.id;
+    }
+
+    // Send session_id in the end event so frontend can track it
+    res.write(`data: ${JSON.stringify({ type: 'end', data: { session_id: currentSessionId } })}\n\n`);
     res.end();
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', data: { message: (err as Error).message } })}\n\n`);

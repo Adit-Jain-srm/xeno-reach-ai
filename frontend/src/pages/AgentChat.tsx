@@ -153,6 +153,9 @@ export default function AgentChat() {
               case 'done':
                 break
               case 'end':
+                if (event.data?.session_id && !sid) {
+                  setSid(event.data.session_id)
+                }
                 break
             }
           } catch { /* skip malformed JSON */ }
