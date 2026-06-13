@@ -241,7 +241,7 @@ export default function Segments() {
                         <Button variant="secondary" onClick={() => setShowSave(true)} className="flex-1">
                           <Save size={10} /> Save
                         </Button>
-                        <Button variant="primary" onClick={() => nav('/agent')} className="flex-1">
+                        <Button variant="primary" onClick={() => nav('/agent', { state: { segment: { filter: buildFilterConfig(), count: preview?.count, source: 'filter_builder' } } })} className="flex-1">
                           Campaign →
                         </Button>
                       </>
@@ -284,7 +284,7 @@ export default function Segments() {
                   {seg.description && <div className="text-2xs text-txt-4 mt-0.5 truncate">{seg.description}</div>}
                 </div>
                 <Badge variant="default">{seg.customer_count.toLocaleString()}</Badge>
-                <Link to="/agent" className="text-2xs text-accent hover:text-accent-light">Campaign →</Link>
+                <button onClick={() => nav('/agent', { state: { segment: { name: seg.name, filter: seg.filter_config, count: seg.customer_count, source: 'saved_segment' } } })} className="text-2xs text-accent hover:text-accent-light font-medium">Campaign →</button>
               </div>
             ))}
             {!segments?.length && (

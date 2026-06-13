@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, Zap, Loader2, Rocket, ChevronDown, ChevronRight, Sparkles, Plus, MessageSquare, Clock, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Send, Bot, Zap, Loader2, Rocket, ChevronDown, ChevronRight, Sparkles, Plus, MessageSquare, Clock, CheckCircle2, ArrowRight, Users } from 'lucide-react'
 import { fetchAgentSessions } from '../services/api'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -55,6 +55,8 @@ export default function AgentChat() {
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const nav = useNavigate()
+  const location = useLocation()
+  const segmentContext = (location.state as any)?.segment
 
   const { data: sessions, refetch: refetchSessions } = useQuery({
     queryKey: ['agent-sessions'],
@@ -63,6 +65,19 @@ export default function AgentChat() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, streaming.tokens, streaming.tools.length])
   useEffect(() => { inputRef.current?.focus() }, [])
+
+  // Auto-fill input when arriving from segment
+  useEffect(() => {
+    if (segmentContext && !msgs.length) {
+      const filterDesc = segmentContext.filter?.conditions?.map((c: any) => `${c.field} ${c.operator} ${c.value}`).join(' AND ') || ''
+      const prompt = segmentContext.name
+        ? `Run a campaign for the "${segmentContext.name}" segment (${segmentContext.count?.toLocaleString()} customers)`
+        : `Run a campaign targeting ${segmentContext.count?.toLocaleString()} customers matching: ${filterDesc}`
+      setInput(prompt)
+      // Clear the router state so it doesn't re-trigger
+      window.history.replaceState({}, '')
+    }
+  }, [segmentContext])
 
   const startNewSession = () => { setSid(undefined); setMsgs([]); setExpandedTools(new Set()) }
 
@@ -247,6 +262,24 @@ export default function AgentChat() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          {/* Segment context banner */}
+          {segmentContext && msgs.length === 0 && (
+            <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="panel p-3 flex items-center gap-3 border-l-2 border-l-signal">
+              <div className="w-8 h-8 rounded-lg bg-signal/10 flex items-center justify-center flex-shrink-0">
+                <Users size={14} className="text-signal" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-medium text-txt-0">
+                  Targeting: {segmentContext.name || 'Custom Segment'}
+                </p>
+                <p className="text-2xs text-txt-2">
+                  {segmentContext.count?.toLocaleString()} customers · {segmentContext.filter?.conditions?.map((c: any) => `${c.field} ${c.operator} ${c.value}`).join(', ')}
+                </p>
+              </div>
+              <Badge variant="accent">{segmentContext.count?.toLocaleString()}</Badge>
+            </motion.div>
+          )}
+
           <AnimatePresence>
             {msgs.length === 0 && !streaming.isStreaming && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full">
