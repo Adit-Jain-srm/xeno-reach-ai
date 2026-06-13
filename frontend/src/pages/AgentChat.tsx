@@ -268,7 +268,7 @@ export default function AgentChat() {
               )}
               <div className={cn(
                 'max-w-[78%] rounded-xl px-4 py-3',
-                m.role === 'user' ? 'bg-accent text-white shadow-sm shadow-accent/20' : 'bg-bg-2 border border-border-subtle'
+                m.role === 'user' ? 'bg-carbon text-white' : 'bg-bg-1 border border-border'
               )}>
                 {/* Tool calls */}
                 {m.tools && m.tools.length > 0 && (

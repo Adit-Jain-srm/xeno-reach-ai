@@ -196,7 +196,7 @@ export default function Dashboard() {
               className="panel rounded-xl p-4 border-l-[3px] border-l-accent hover:border-l-accent-light transition-colors"
             >
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-accent/20">
+                <div className="w-8 h-8 rounded-lg bg-signal/10 flex items-center justify-center flex-shrink-0">
                   <Activity size={14} className="text-white" />
                 </div>
                 <div className="flex-1">

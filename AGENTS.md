@@ -26,14 +26,14 @@
 - Embed testing + self-improvement loops after every implementation phase
 - User prefers streaming agent responses with visible reasoning (not spinners)
 - Prefer bold, opinionated product choices over building everything shallowly
-- **Design: Bloomberg Terminal meets Linear.app** — data-dense, information-first, functional beauty from density
-- Color ONLY for semantic meaning (green=success, red=failure, amber=pending, blue=active, indigo=interactive)
-- Typography: Satoshi (text/headings) + JetBrains Mono (ALL data values, monospace tabular nums)
-- 13px base font, compact spacing, maximum information per pixel
-- Sidebar 200px, headers 48px fixed, panels with border separators not card elevation
-- No "premium" decorations — the premium signal comes from density + precision + craft
-- Frontend must feel like a serious professional instrument, not a consumer SaaS template
-- Use `panel` class (bg-1 + border-subtle), NOT glass/gradient cards
+- **Design: "Ventriloc" — analytics console on parchment** (light theme, replaced the earlier Bloomberg dark theme)
+- Typography: PolySans (display/headings, weight 400, tight letter-spacing -0.02em) + Inter (body/UI, weights 400/500/600)
+- Color palette: warm monochrome neutrals + Signal Orange (#ff682c) as single accent color
+- Surfaces: white cards (#fff) on warm-gray Mist (#efefef) canvas; elevation from bg contrast not shadows
+- Components: pill-shaped buttons (border-radius 20px), 8px card radius, floating nav capsule (200px radius)
+- Spacing: 4px base unit, comfortable density, page max-width 1200px
+- Color for semantic meaning still applies (green=success, red=failure) but primary accent is Signal Orange
+- No heavy decorations — the premium signal comes from geometric precision, tight typography, and restraint
 - Operate as autonomous Principal Engineer — don't stop at "working", iterate until excellent
 
 ## Learned Workspace Facts

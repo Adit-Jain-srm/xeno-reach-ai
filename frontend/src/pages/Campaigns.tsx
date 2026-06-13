@@ -10,7 +10,7 @@ export default function Campaigns() {
     <div className="h-full flex flex-col">
       <header className="h-12 flex items-center justify-between px-5 border-b border-border-subtle flex-shrink-0">
         <h1 className="text-md font-semibold text-txt-0">Campaigns</h1>
-        <Link to="/agent" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-white text-xs font-medium hover:bg-accent-dim transition-colors">
+        <Link to="/agent" className="btn-pill btn-pill-filled text-xs">
           <Plus size={11} /> Create
         </Link>
       </header>
