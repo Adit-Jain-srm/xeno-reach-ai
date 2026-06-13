@@ -1,66 +1,58 @@
-import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Bot, Megaphone, Users, Layers, BarChart3 } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { LayoutDashboard, Bot, Megaphone, Users, Layers, BarChart3, Command } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
-const NAV_ITEMS = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/agent', icon: Bot, label: 'AI Agent' },
-  { to: '/campaigns', icon: Megaphone, label: 'Campaigns' },
-  { to: '/customers', icon: Users, label: 'Customers' },
-  { to: '/segments', icon: Layers, label: 'Segments' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+const NAV = [
+  { to: '/', icon: LayoutDashboard, label: 'Overview', kbd: '1' },
+  { to: '/agent', icon: Bot, label: 'Agent', kbd: '2' },
+  { to: '/campaigns', icon: Megaphone, label: 'Campaigns', kbd: '3' },
+  { to: '/customers', icon: Users, label: 'Customers', kbd: '4' },
+  { to: '/segments', icon: Layers, label: 'Segments', kbd: '5' },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics', kbd: '6' },
 ]
 
 export default function Sidebar() {
+  const location = useLocation()
+
   return (
-    <aside className="w-[264px] h-screen flex flex-col border-r border-white/[0.06] bg-raised/80 backdrop-blur-xl flex-shrink-0">
-      {/* Brand */}
-      <div className="px-5 py-6 border-b border-white/[0.06]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center shadow-lg shadow-accent/20">
-            <span className="text-white font-bold text-sm">X</span>
-          </div>
-          <div>
-            <h1 className="text-[15px] font-bold tracking-tight">
-              Xeno<span className="gradient-text">Reach</span>.AI
-            </h1>
-            <p className="text-[11px] text-txt-muted leading-none mt-0.5">BrewPulse Marketing</p>
-          </div>
+    <aside className="w-[200px] h-screen flex flex-col bg-bg-1 flex-shrink-0 select-none">
+      {/* Logo */}
+      <div className="px-4 h-12 flex items-center gap-2 border-b border-border-subtle">
+        <div className="w-5 h-5 rounded bg-accent flex items-center justify-center">
+          <Command size={11} className="text-white" />
         </div>
+        <span className="text-sm font-bold text-txt-0 tracking-tight">XenoReach</span>
+        <span className="badge bg-accent/10 text-accent ml-auto">.AI</span>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) => cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-200 group relative',
-              isActive
-                ? 'text-white bg-accent/10'
-                : 'text-txt-secondary hover:text-txt-primary hover:bg-white/[0.03]'
-            )}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-accent shadow-[0_0_8px_rgb(var(--accent)/0.5)]" />
-                )}
-                <Icon size={17} className={cn(isActive ? 'text-accent' : 'text-txt-muted group-hover:text-txt-secondary')} />
-                {label}
-              </>
-            )}
-          </NavLink>
-        ))}
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-2 space-y-px">
+        {NAV.map(({ to, icon: Icon, label, kbd }) => {
+          const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              className={cn(
+                'flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-sm transition-colors duration-100',
+                isActive
+                  ? 'bg-bg-3 text-txt-0'
+                  : 'text-txt-3 hover:text-txt-1 hover:bg-bg-2'
+              )}
+            >
+              <Icon size={14} className={cn(isActive ? 'text-accent' : 'text-txt-4')} />
+              <span className="flex-1">{label}</span>
+              <span className="kbd opacity-0 group-hover:opacity-100">{kbd}</span>
+            </NavLink>
+          )
+        })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-4 border-t border-white/[0.06]">
-        <div className="flex items-center gap-2 text-[11px] text-txt-muted">
-          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-          All systems operational
+      {/* Status */}
+      <div className="px-3 py-3 border-t border-border-subtle">
+        <div className="flex items-center gap-1.5 text-2xs text-txt-4">
+          <span className="w-1.5 h-1.5 rounded-full bg-semantic-green" />
+          Connected · BrewPulse
         </div>
       </div>
     </aside>

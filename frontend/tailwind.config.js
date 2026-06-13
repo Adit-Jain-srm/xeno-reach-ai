@@ -4,51 +4,26 @@ export default {
   theme: {
     extend: {
       colors: {
-        base: 'rgb(var(--bg-base) / <alpha-value>)',
-        raised: 'rgb(var(--bg-raised) / <alpha-value>)',
-        card: 'rgb(var(--bg-card) / <alpha-value>)',
-        overlay: 'rgb(var(--bg-overlay) / <alpha-value>)',
-        accent: {
-          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
-          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
-          muted: 'rgb(var(--accent-muted) / 0.15)',
-        },
-        txt: {
-          primary: 'rgb(var(--text-primary) / <alpha-value>)',
-          secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
-          muted: 'rgb(var(--text-muted) / <alpha-value>)',
-        },
-        success: 'rgb(var(--success) / <alpha-value>)',
-        warning: 'rgb(var(--warning) / <alpha-value>)',
-        error: 'rgb(var(--error) / <alpha-value>)',
-        info: 'rgb(var(--info) / <alpha-value>)',
+        bg: { 0: '#08080a', 1: '#0c0c0f', 2: '#111114', 3: '#18181b', 4: '#1f1f23' },
+        accent: { DEFAULT: '#6366f1', dim: '#4f46e5', light: '#818cf8' },
+        txt: { 0: '#fafafa', 1: '#d4d4d8', 2: '#a1a1aa', 3: '#71717a', 4: '#52525b' },
+        border: { DEFAULT: '#27272a', subtle: '#1e1e21' },
+        semantic: { green: '#22c55e', red: '#ef4444', amber: '#f59e0b', blue: '#3b82f6' },
       },
       fontFamily: {
-        sans: ['Satoshi', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['Satoshi', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
-      borderRadius: {
-        DEFAULT: 'var(--radius)',
-        sm: '8px',
-        md: '12px',
+      fontSize: {
+        '2xs': '10px',
+        xs: '11px',
+        sm: '12px',
+        base: '13px',
+        md: '14px',
         lg: '16px',
-        xl: '24px',
-      },
-      animation: {
-        'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
-        'float': 'float 20s ease-in-out infinite',
-        'float-slow': 'float 30s ease-in-out infinite',
-      },
-      keyframes: {
-        'glow-pulse': {
-          '0%, 100%': { opacity: '0.4' },
-          '50%': { opacity: '0.8' },
-        },
-        'float': {
-          '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
-          '33%': { transform: 'translate(30px, -30px) rotate(120deg)' },
-          '66%': { transform: 'translate(-20px, 20px) rotate(240deg)' },
-        },
+        xl: '20px',
+        '2xl': '24px',
+        '3xl': '32px',
       },
     },
   },

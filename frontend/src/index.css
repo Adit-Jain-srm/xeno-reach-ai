@@ -2,116 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
-    /* Surfaces — 4 level elevation */
-    --bg-base: 9 9 11;
-    --bg-raised: 15 15 18;
-    --bg-card: 22 22 26;
-    --bg-overlay: 28 28 34;
-
-    /* Brand */
-    --accent: 99 102 241;
-    --accent-hover: 129 140 248;
-    --accent-muted: 99 102 241;
-
-    /* Text */
-    --text-primary: 250 250 250;
-    --text-secondary: 161 161 170;
-    --text-muted: 113 113 122;
-
-    /* Semantic */
-    --success: 52 211 153;
-    --warning: 251 191 36;
-    --error: 248 113 113;
-    --info: 96 165 250;
-
-    /* Borders */
-    --border: 255 255 255;
-    --border-opacity: 0.06;
-
-    /* Radius */
-    --radius: 12px;
+    --bg-0: #08080a;
+    --bg-1: #0c0c0f;
+    --bg-2: #111114;
+    --bg-3: #18181b;
+    --bg-4: #1f1f23;
+    --accent: #6366f1;
+    --accent-dim: #4f46e5;
+    --text-0: #fafafa;
+    --text-1: #d4d4d8;
+    --text-2: #a1a1aa;
+    --text-3: #71717a;
+    --text-4: #52525b;
+    --border: #27272a;
+    --border-subtle: #1e1e21;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
   }
 
-  * {
-    box-sizing: border-box;
-    border-color: rgb(var(--border) / var(--border-opacity));
-  }
+  * { box-sizing: border-box; }
 
   body {
     margin: 0;
-    background: rgb(var(--bg-base));
-    color: rgb(var(--text-primary));
-    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-0);
+    color: var(--text-1);
+    font-family: 'Satoshi', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Satoshi', sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
+  h1, h2, h3 { color: var(--text-0); font-weight: 700; letter-spacing: -0.025em; }
 
-  code, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+  input, textarea, select {
+    font-family: inherit;
+    font-size: 13px;
   }
 }
 
 @layer components {
-  .glass {
-    background: rgb(var(--bg-card) / 0.6);
-    backdrop-filter: blur(16px) saturate(1.2);
-    border: 1px solid rgb(var(--border) / 0.08);
+  .panel {
+    background: var(--bg-1);
+    border: 1px solid var(--border-subtle);
   }
 
-  .glass-strong {
-    background: rgb(var(--bg-card) / 0.8);
-    backdrop-filter: blur(24px) saturate(1.4);
-    border: 1px solid rgb(var(--border) / 0.1);
+  .panel-raised {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
   }
 
-  .glow-accent {
-    box-shadow: 0 0 20px rgb(var(--accent) / 0.15), 0 0 40px rgb(var(--accent) / 0.05);
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 2px 6px;
+    border-radius: 4px;
   }
 
-  .gradient-text {
-    background: linear-gradient(135deg, rgb(var(--accent)), #a78bfa, #818cf8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .data-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
   }
 
-  .gradient-border {
-    position: relative;
-    border: 1px solid transparent;
-    background: rgb(var(--bg-card));
-    background-clip: padding-box;
-  }
-
-  .gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgb(var(--accent) / 0.3), transparent, rgb(var(--accent) / 0.1));
-    z-index: -1;
+  .kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    color: var(--text-3);
   }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgb(var(--border) / 0.2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgb(var(--border) / 0.4); }
-
-/* Selection */
-::selection {
-  background: rgb(var(--accent) / 0.3);
-  color: rgb(var(--text-primary));
-}
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::selection { background: rgba(99, 102, 241, 0.25); }

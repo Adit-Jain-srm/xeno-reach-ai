@@ -1,320 +1,151 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, Loader2, Sparkles, Rocket, Zap } from 'lucide-react'
+import { Send, Bot, Zap, Loader2, CheckCircle2, Rocket } from 'lucide-react'
 import { sendAgentMessage } from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import { cn } from '../lib/cn'
 
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  tool_calls?: any[]
-  campaign_plan?: any
-  isStreaming?: boolean
-  timestamp: string
-}
-
-interface ToolProgress {
-  name: string
-  status: 'running' | 'done'
-  duration_ms?: number
-  result?: any
-}
+interface Msg { role: 'user' | 'assistant'; content: string; tools?: any[]; campaign?: any; ts: string }
 
 export default function AgentChat() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [msgs, setMsgs] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sessionId, setSessionId] = useState<string | undefined>()
-  const [activeTools, setActiveTools] = useState<ToolProgress[]>([])
-  const [streamingContent, setStreamingContent] = useState('')
-  const [statusText, setStatusText] = useState('')
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const navigate = useNavigate()
+  const [sid, setSid] = useState<string>()
+  const endRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const nav = useNavigate()
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent])
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
+  useEffect(() => { inputRef.current?.focus() }, [])
 
-  const handleStreamingChat = useCallback(async (userMessage: string) => {
-    setLoading(true)
-    setStreamingContent('')
-    setActiveTools([])
-    setStatusText('')
-
-    const apiUrl = import.meta.env.VITE_API_URL || '/api'
-
-    try {
-      const response = await fetch(`${apiUrl}/agent/chat/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, session_id: sessionId }),
-      })
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      if (!response.body) throw new Error('No response body')
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let fullContent = ''
-      const tools: ToolProgress[] = []
-      let campaignPlan: any = null
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const jsonStr = line.slice(6)
-          if (!jsonStr.trim()) continue
-
-          try {
-            const event = JSON.parse(jsonStr)
-
-            switch (event.type) {
-              case 'status':
-                setStatusText(event.data.step)
-                break
-              case 'tool_start':
-                tools.push({ name: event.data.name, status: 'running' })
-                setActiveTools([...tools])
-                setStatusText(`Running ${event.data.name}...`)
-                break
-              case 'tool_end':
-                const idx = tools.findIndex(t => t.name === event.data.name && t.status === 'running')
-                if (idx >= 0) {
-                  tools[idx] = { ...tools[idx], status: 'done', duration_ms: event.data.duration_ms, result: event.data.result }
-                }
-                setActiveTools([...tools])
-                break
-              case 'campaign_created':
-                campaignPlan = event.data
-                break
-              case 'stream_start':
-                setStatusText('')
-                break
-              case 'token':
-                fullContent += event.data.content
-                setStreamingContent(fullContent)
-                break
-              case 'stream_end':
-                fullContent = event.data.full_content || fullContent
-                break
-              case 'done':
-                break
-              case 'error':
-                fullContent = `Error: ${event.data.message}`
-                break
-            }
-          } catch {}
-        }
-      }
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: fullContent,
-        tool_calls: tools.filter(t => t.status === 'done'),
-        campaign_plan: campaignPlan,
-        timestamp: new Date().toISOString(),
-      }])
-      setStreamingContent('')
-      setActiveTools([])
-    } catch (err: any) {
-      // Fallback to non-streaming
-      try {
-        const response = await sendAgentMessage(userMessage, sessionId)
-        if (response.session_id) setSessionId(response.session_id)
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: response.message,
-          tool_calls: response.tool_calls,
-          campaign_plan: response.campaign_plan,
-          timestamp: new Date().toISOString(),
-        }])
-      } catch (fallbackErr: any) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `Error: ${fallbackErr.response?.data?.message || fallbackErr.message}`,
-          timestamp: new Date().toISOString(),
-        }])
-      }
-    } finally {
-      setLoading(false)
-      setStatusText('')
-    }
-  }, [sessionId])
-
-  const handleSend = async () => {
+  const send = useCallback(async () => {
     if (!input.trim() || loading) return
-    const userMessage = input.trim()
+    const text = input.trim()
     setInput('')
-    setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: new Date().toISOString() }])
-    await handleStreamingChat(userMessage)
-  }
+    setMsgs(p => [...p, { role: 'user', content: text, ts: new Date().toISOString() }])
+    setLoading(true)
+    try {
+      const r = await sendAgentMessage(text, sid)
+      if (r.session_id) setSid(r.session_id)
+      setMsgs(p => [...p, { role: 'assistant', content: r.message, tools: r.tool_calls, campaign: r.campaign_plan, ts: new Date().toISOString() }])
+    } catch (e: any) {
+      setMsgs(p => [...p, { role: 'assistant', content: `Error: ${e.response?.data?.message || e.message}`, ts: new Date().toISOString() }])
+    } finally { setLoading(false) }
+  }, [input, loading, sid])
 
-  const handleApprove = (campaignId: string) => {
-    navigate(`/campaigns/${campaignId}`)
-  }
-
-  const suggestions = [
-    "Win back customers who haven't ordered in 30 days",
-    "Launch our new cold brew to premium customers in Mumbai",
-    "Send a loyalty reward to our most active customers this month",
+  const prompts = [
+    "Win back customers inactive for 30+ days",
+    "Launch cold brew campaign to gold tier in Mumbai",
+    "Send loyalty rewards to top 100 customers",
   ]
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="border-b border-[var(--border)] px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center">
-            <Bot size={18} className="text-[var(--primary)]" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold">AI Marketing Agent</h1>
-            <p className="text-xs text-[var(--text-muted)]">Context-aware streaming · Describe a goal and I'll plan the campaign</p>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5 text-xs text-[var(--text-muted)] bg-[var(--surface)] px-2.5 py-1 rounded-full border border-[var(--border)]">
-            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-            GPT-4o · SSE
-          </div>
-        </div>
-      </div>
+      <header className="h-12 flex items-center px-5 border-b border-border-subtle flex-shrink-0">
+        <Bot size={14} className="text-accent mr-2" />
+        <h1 className="text-md font-semibold text-txt-0">AI Agent</h1>
+        <span className="badge bg-accent/10 text-accent ml-2">GPT-4o</span>
+        <span className="text-2xs text-txt-4 ml-auto">Context-aware · Function calling · Self-correction</span>
+      </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {messages.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center mb-4">
-              <Sparkles size={28} className="text-[var(--primary)]" />
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {msgs.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="w-10 h-10 rounded-lg bg-bg-3 border border-border flex items-center justify-center mb-4">
+              <Bot size={18} className="text-accent" />
             </div>
-            <h2 className="text-xl font-semibold mb-2">What campaign shall we run?</h2>
-            <p className="text-[var(--text-muted)] text-sm max-w-md mb-6">
-              I have full context of your customer data, past campaigns, and channel performance. Describe your goal and I'll plan the optimal campaign.
-            </p>
+            <p className="text-md font-medium text-txt-0 mb-1">Marketing Agent Ready</p>
+            <p className="text-xs text-txt-3 mb-6 text-center max-w-md">Describe a campaign goal. I'll analyze your 10K customers, find the audience, draft messages, and execute.</p>
             <div className="space-y-2 w-full max-w-lg">
-              {suggestions.map(s => (
-                <button key={s} onClick={() => setInput(s)} className="w-full text-left px-4 py-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm hover:border-[var(--primary)]/50 transition-colors">
-                  {s}
+              {prompts.map(p => (
+                <button key={p} onClick={() => setInput(p)} className="w-full text-left px-3 py-2 rounded-md text-sm text-txt-2 hover:text-txt-0 hover:bg-bg-2 border border-border-subtle hover:border-border transition-all">
+                  {p}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-            {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center flex-shrink-0 mt-1">
-                <Bot size={16} className="text-[var(--primary)]" />
+        {msgs.map((m, i) => (
+          <div key={i} className={cn('flex gap-3', m.role === 'user' && 'justify-end')}>
+            {m.role === 'assistant' && (
+              <div className="w-6 h-6 rounded bg-bg-3 border border-border-subtle flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Bot size={12} className="text-accent" />
               </div>
             )}
-            <div className={`max-w-[75%] ${msg.role === 'user' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface)] border border-[var(--border)]'} rounded-2xl px-4 py-3`}>
-              {msg.tool_calls && msg.tool_calls.length > 0 && (
-                <div className="mb-3 space-y-1.5">
-                  {msg.tool_calls.map((tc: any, j: number) => (
-                    <div key={j} className="flex items-center gap-2 text-xs bg-[var(--bg)] rounded-lg px-3 py-1.5 border border-[var(--border)]">
-                      <Zap size={10} className="text-[var(--primary)]" />
-                      <span className="text-[var(--primary)] font-medium">{tc.name}</span>
-                      <span className="text-[var(--text-muted)] ml-auto">{tc.duration_ms}ms</span>
-                    </div>
+            <div className={cn(
+              'max-w-[75%] rounded-lg px-3 py-2',
+              m.role === 'user' ? 'bg-accent text-white' : 'panel-raised'
+            )}>
+              {/* Tool calls */}
+              {m.tools && m.tools.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {m.tools.map((t: any, j: number) => (
+                    <span key={j} className="inline-flex items-center gap-1 badge bg-bg-3 text-txt-2 border border-border-subtle">
+                      <Zap size={8} className="text-accent" />{t.name}
+                      <span className="text-txt-4">{t.duration_ms}ms</span>
+                    </span>
                   ))}
                 </div>
               )}
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-
-              {msg.campaign_plan && (
-                <div className="mt-4 bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Rocket size={16} className="text-[var(--primary)]" />
-                    <span className="font-semibold text-sm">Campaign Ready</span>
-                    <span className="ml-auto text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full">
-                      {msg.campaign_plan.ai_confidence_score ? `${Math.round(msg.campaign_plan.ai_confidence_score * 100)}%` : '85%'} confidence
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.content}</p>
+              {/* Campaign card */}
+              {m.campaign && (
+                <div className="mt-3 p-3 rounded-md bg-bg-3 border border-border space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Rocket size={12} className="text-accent" />
+                    <span className="text-xs font-semibold text-txt-0">Campaign Ready</span>
+                    <span className="badge bg-semantic-green/10 text-semantic-green ml-auto">
+                      {m.campaign.ai_confidence_score ? `${Math.round(m.campaign.ai_confidence_score * 100)}%` : '85%'}
                     </span>
                   </div>
-                  <div className="space-y-1 text-xs text-[var(--text-muted)]">
-                    <p><strong>Name:</strong> {msg.campaign_plan.name}</p>
-                    <p><strong>Audience:</strong> {msg.campaign_plan.audience_count?.toLocaleString()} customers</p>
-                    <p><strong>Channels:</strong> {msg.campaign_plan.channels?.join(', ')}</p>
+                  <div className="text-2xs text-txt-3 space-y-0.5">
+                    <div><span className="text-txt-4">Name:</span> {m.campaign.name}</div>
+                    <div><span className="text-txt-4">Audience:</span> <span className="data-value">{m.campaign.audience_count?.toLocaleString()}</span></div>
+                    <div><span className="text-txt-4">Channels:</span> {m.campaign.channels?.join(', ')}</div>
                   </div>
-                  <button
-                    onClick={() => handleApprove(msg.campaign_plan.campaign_id || msg.campaign_plan.id)}
-                    className="mt-3 w-full py-2 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white rounded-lg text-sm font-medium transition-colors"
-                  >
-                    View & Launch Campaign →
+                  <button onClick={() => nav(`/campaigns/${m.campaign.campaign_id || m.campaign.id}`)} className="w-full py-1.5 rounded bg-accent hover:bg-accent-dim text-white text-xs font-medium transition-colors">
+                    View & Launch →
                   </button>
                 </div>
               )}
             </div>
-            {msg.role === 'user' && (
-              <div className="w-8 h-8 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0 mt-1">
-                <User size={16} className="text-[var(--text-muted)]" />
-              </div>
-            )}
           </div>
         ))}
 
-        {/* Live streaming state */}
         {loading && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center flex-shrink-0">
-              <Bot size={16} className="text-[var(--primary)]" />
+            <div className="w-6 h-6 rounded bg-bg-3 border border-border-subtle flex items-center justify-center flex-shrink-0">
+              <Loader2 size={12} className="text-accent animate-spin" />
             </div>
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-4 py-3 max-w-[75%]">
-              {/* Active tool calls */}
-              {activeTools.length > 0 && (
-                <div className="mb-3 space-y-1.5">
-                  {activeTools.map((tool, j) => (
-                    <div key={j} className="flex items-center gap-2 text-xs bg-[var(--bg)] rounded-lg px-3 py-1.5 border border-[var(--border)]">
-                      {tool.status === 'running' ? (
-                        <Loader2 size={10} className="animate-spin text-[var(--primary)]" />
-                      ) : (
-                        <Zap size={10} className="text-green-400" />
-                      )}
-                      <span className={tool.status === 'done' ? 'text-green-400' : 'text-[var(--primary)]'}>{tool.name}</span>
-                      {tool.duration_ms && <span className="text-[var(--text-muted)] ml-auto">{tool.duration_ms}ms</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Streaming content */}
-              {streamingContent ? (
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{streamingContent}<span className="inline-block w-1.5 h-4 bg-[var(--primary)] animate-pulse ml-0.5" /></p>
-              ) : (
-                <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                  <Loader2 size={14} className="animate-spin" />
-                  {statusText || 'Thinking...'}
-                </div>
-              )}
+            <div className="panel-raised rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-xs text-txt-3">
+                <span className="w-4 h-0.5 bg-accent rounded-full animate-pulse" />
+                Processing...
+              </div>
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={endRef} />
       </div>
 
       {/* Input */}
-      <div className="border-t border-[var(--border)] p-4">
-        <div className="flex gap-3">
+      <div className="px-5 py-3 border-t border-border-subtle">
+        <div className="flex gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="Describe a marketing goal..."
-            className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] transition-colors placeholder:text-[var(--text-muted)]"
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+            placeholder="Describe a campaign goal..."
+            className="flex-1 px-3 py-2 rounded-md bg-bg-2 border border-border-subtle text-sm text-txt-0 placeholder:text-txt-4 focus:outline-none focus:border-accent/50 transition-colors"
             disabled={loading}
           />
-          <button
-            onClick={handleSend}
-            disabled={loading || !input.trim()}
-            className="px-4 py-3 bg-[var(--primary)] hover:bg-[var(--primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
-          >
-            <Send size={18} />
+          <button onClick={send} disabled={loading || !input.trim()} className="px-3 py-2 rounded-md bg-accent hover:bg-accent-dim disabled:opacity-30 text-white transition-colors">
+            <Send size={14} />
           </button>
         </div>
       </div>
