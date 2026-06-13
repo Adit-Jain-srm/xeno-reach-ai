@@ -41,6 +41,19 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
+// Diagnostic: test Supabase query directly
+app.get('/api/diag', async (_req, res) => {
+  try {
+    const { supabase } = await import('./db/supabase.js');
+    const start = Date.now();
+    const { data, error, count } = await supabase.from('customers').select('id', { count: 'exact', head: true });
+    const duration = Date.now() - start;
+    res.json({ ok: !error, duration_ms: duration, count, error: error?.message || null });
+  } catch (err: any) {
+    res.json({ ok: false, error: err.message });
+  }
+});
+
 // Mount routes
 app.use('/api/customers', customersRouter);
 app.use('/api/orders', ordersRouter);
