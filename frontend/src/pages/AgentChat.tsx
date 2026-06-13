@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, Zap, Loader2, Rocket, ChevronDown, ChevronRight, Sparkles } from 'lucide-react'
-import { sendAgentMessage } from '../services/api'
+import { Send, Bot, Zap, Loader2, Rocket, ChevronDown, ChevronRight, Sparkles, Plus, MessageSquare, Clock } from 'lucide-react'
+import { sendAgentMessage, fetchAgentSessions } from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from '../lib/cn'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -17,8 +18,31 @@ export default function AgentChat() {
   const inputRef = useRef<HTMLInputElement>(null)
   const nav = useNavigate()
 
+  const { data: sessions, refetch: refetchSessions } = useQuery({
+    queryKey: ['agent-sessions'],
+    queryFn: fetchAgentSessions,
+  })
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
   useEffect(() => { inputRef.current?.focus() }, [])
+
+  const startNewSession = () => {
+    setSid(undefined)
+    setMsgs([])
+    setExpandedTools(new Set())
+  }
+
+  const loadSession = async (sessionId: string) => {
+    setSid(sessionId)
+    try {
+      const { data } = await import('../services/api').then(m => m.api.get(`/agent/sessions/${sessionId}`))
+      if (data?.messages) {
+        setMsgs(data.messages.map((m: any) => ({
+          role: m.role, content: m.content, ts: m.timestamp || new Date().toISOString(),
+        })))
+      }
+    } catch { /* ignore */ }
+  }
 
   const send = useCallback(async () => {
     if (!input.trim() || loading) return
@@ -32,8 +56,8 @@ export default function AgentChat() {
       setMsgs(p => [...p, { role: 'assistant', content: r.message, tools: r.tool_calls, campaign: r.campaign_plan, ts: new Date().toISOString() }])
     } catch (e: any) {
       setMsgs(p => [...p, { role: 'assistant', content: `Error: ${e.response?.data?.message || e.message}`, ts: new Date().toISOString() }])
-    } finally { setLoading(false) }
-  }, [input, loading, sid])
+    } finally { setLoading(false); refetchSessions() }
+  }, [input, loading, sid, refetchSessions])
 
   const toggleTools = (idx: number) => {
     setExpandedTools(prev => {
@@ -51,7 +75,39 @@ export default function AgentChat() {
   ]
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex">
+      {/* Session Sidebar */}
+      <div className="w-[220px] h-full border-r border-border-subtle flex flex-col flex-shrink-0 bg-bg-1">
+        <div className="h-12 flex items-center justify-between px-3 border-b border-border-subtle">
+          <span className="text-xs font-semibold text-txt-2">Sessions</span>
+          <button onClick={startNewSession} className="p-1.5 rounded-md hover:bg-bg-3 text-txt-3 hover:text-accent transition-colors" title="New chat">
+            <Plus size={13} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-1.5">
+          {sessions?.map((s: any) => (
+            <button key={s.id} onClick={() => loadSession(s.id)} className={cn(
+              'w-full text-left px-3 py-2 text-xs transition-colors truncate',
+              sid === s.id ? 'bg-bg-3 text-txt-0' : 'text-txt-3 hover:bg-bg-2 hover:text-txt-1'
+            )}>
+              <div className="flex items-center gap-2">
+                <MessageSquare size={11} className={sid === s.id ? 'text-accent' : 'text-txt-4'} />
+                <span className="truncate flex-1">{s.preview || 'New conversation'}</span>
+              </div>
+              <div className="flex items-center gap-1 mt-0.5 text-2xs text-txt-4 pl-5">
+                <Clock size={8} />
+                {new Date(s.created_at).toLocaleDateString()}
+              </div>
+            </button>
+          ))}
+          {!sessions?.length && (
+            <div className="px-3 py-4 text-2xs text-txt-4 text-center">No sessions yet</div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Chat */}
+      <div className="flex-1 flex flex-col">
       {/* Header */}
       <header className="h-12 flex items-center px-5 border-b border-border-subtle flex-shrink-0 gap-3">
         <div className="w-6 h-6 rounded-md bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center">
@@ -185,6 +241,7 @@ export default function AgentChat() {
             <Send size={15} />
           </button>
         </div>
+      </div>
       </div>
     </div>
   )
