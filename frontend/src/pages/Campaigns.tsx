@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 
 export default function Campaigns() {
-  const { data } = useQuery({ queryKey: ['campaigns'], queryFn: () => fetchCampaigns({}) })
+  const { data, refetch } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: () => fetchCampaigns({}),
+    refetchInterval: 5000,
+  })
 
   return (
     <div className="h-full flex flex-col">
@@ -26,7 +30,12 @@ export default function Campaigns() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle">
-            {data?.data?.map((c: any) => (
+            {data?.data?.map((c: any) => {
+              const stats = c.campaign_stats?.[0]
+              const deliveryRate = stats?.total_sent > 0
+                ? Math.round((stats.total_delivered / stats.total_sent) * 100)
+                : null
+              return (
               <tr key={c.id} className="hover:bg-bg-2 transition-colors cursor-pointer" onClick={() => window.location.href = `/campaigns/${c.id}`}>
                 <td className="px-5 py-2.5">
                   <div className="text-txt-0 font-medium">{c.name}</div>
@@ -34,7 +43,15 @@ export default function Campaigns() {
                 </td>
                 <td className="px-3 py-2.5 text-xs text-txt-2 capitalize">{c.channels?.join(', ')}</td>
                 <td className="px-3 py-2.5 text-right data-value text-txt-1">{c.audience_count?.toLocaleString()}</td>
-                <td className="px-3 py-2.5 text-right data-value text-txt-1">{c.campaign_stats?.[0]?.delivery_rate || '—'}%</td>
+                <td className="px-3 py-2.5 text-right data-value text-txt-1">
+                  {deliveryRate !== null ? (
+                    <span className={deliveryRate > 90 ? 'text-semantic-green' : deliveryRate > 70 ? 'text-txt-0' : 'text-semantic-amber'}>
+                      {deliveryRate}%
+                    </span>
+                  ) : (
+                    <span className="text-txt-3">—</span>
+                  )}
+                </td>
                 <td className="px-5 py-2.5 text-right">
                   <span className={`badge ${
                     c.status === 'completed' ? 'bg-semantic-green/10 text-semantic-green' :
@@ -44,7 +61,8 @@ export default function Campaigns() {
                   }`}>{c.status}</span>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
         {!data?.data?.length && <div className="text-center text-txt-4 text-xs py-12">No campaigns</div>}

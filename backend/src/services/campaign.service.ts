@@ -19,8 +19,26 @@ export async function listCampaigns(params: { status?: string; page?: number; pa
   const { data, error, count } = await query;
   if (error) throw error;
 
+  // Auto-complete stale running campaigns
+  const campaigns = data || [];
+  for (const c of campaigns) {
+    if (c.status === 'running') {
+      const stats = c.campaign_stats?.[0];
+      if (stats && stats.total_sent > 0) {
+        const totalProcessed = (stats.total_delivered || 0) + (stats.total_failed || 0);
+        if (totalProcessed >= stats.total_sent) {
+          await supabase
+            .from('campaigns')
+            .update({ status: 'completed', completed_at: new Date().toISOString() })
+            .eq('id', c.id);
+          c.status = 'completed';
+        }
+      }
+    }
+  }
+
   return {
-    data: data || [],
+    data: campaigns,
     total: count || 0,
     page,
     page_size,
@@ -36,6 +54,23 @@ export async function getCampaign(id: string) {
     .single();
 
   if (error) throw error;
+
+  // Auto-detect stale "running" campaigns that are actually complete
+  if (data?.status === 'running') {
+    const stats = data.campaign_stats?.[0];
+    if (stats && stats.total_sent > 0) {
+      const totalProcessed = (stats.total_delivered || 0) + (stats.total_failed || 0);
+      if (totalProcessed >= stats.total_sent) {
+        await supabase
+          .from('campaigns')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('id', id);
+        data.status = 'completed';
+        data.completed_at = new Date().toISOString();
+      }
+    }
+  }
+
   return data;
 }
 
