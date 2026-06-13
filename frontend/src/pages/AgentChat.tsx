@@ -72,7 +72,11 @@ export default function AgentChat() {
       const { data } = await import('../services/api').then(m => m.api.get(`/agent/sessions/${sessionId}`))
       if (data?.messages) {
         setMsgs(data.messages.map((m: any) => ({
-          role: m.role, content: m.content, ts: m.timestamp || new Date().toISOString(),
+          role: m.role,
+          content: m.content,
+          tools: m.tool_calls || undefined,
+          campaign: m.campaign || undefined,
+          ts: m.timestamp || new Date().toISOString(),
         })))
       }
     } catch { /* ignore */ }

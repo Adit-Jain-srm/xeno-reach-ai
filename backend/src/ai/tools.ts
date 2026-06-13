@@ -164,4 +164,38 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'refine_message',
+      description: 'Refine a campaign message with a specific direction (hook type, tone shift, length adjustment). Returns 3 variants ranked by predicted engagement. Use when the user wants to customize or improve a message.',
+      parameters: {
+        type: 'object',
+        properties: {
+          original_message: { type: 'string', description: 'The current message to refine' },
+          direction: { type: 'string', description: 'What to change: e.g. "make it more urgent", "add scarcity", "shorter", "more premium", "add social proof", "curiosity hook", "FOMO", "benefit-first"' },
+          channel: { type: 'string', enum: ['whatsapp', 'sms', 'email', 'rcs'] },
+          audience_context: { type: 'string', description: 'Brief description of who receives this (e.g., "gold tier, inactive 30 days, prefer whatsapp")' },
+        },
+        required: ['original_message', 'direction', 'channel'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'ab_test_hooks',
+      description: 'Generate 3 distinct message hooks for A/B testing. Each uses a different psychological trigger (scarcity, social proof, curiosity, exclusivity, loss aversion, reciprocity). Returns hooks ranked by predicted click-through rate.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal: { type: 'string', description: 'Campaign goal/what action you want' },
+          audience: { type: 'string', description: 'Who is receiving this' },
+          channel: { type: 'string', enum: ['whatsapp', 'sms', 'email', 'rcs'] },
+          brand_tone: { type: 'string', enum: ['premium', 'friendly', 'urgent', 'playful', 'minimal'], description: 'Brand voice' },
+        },
+        required: ['goal', 'audience', 'channel'],
+      },
+    },
+  },
 ];

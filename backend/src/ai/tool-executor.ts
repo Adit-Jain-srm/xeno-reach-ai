@@ -11,6 +11,8 @@ export async function executeToolCall(name: string, args: any): Promise<any> {
     case 'create_campaign': return createCampaign(args);
     case 'get_past_campaigns': return getPastCampaigns(args);
     case 'launch_campaign': return launchCampaign(args);
+    case 'refine_message': return refineMessage(args);
+    case 'ab_test_hooks': return abTestHooks(args);
     default: return { error: `Unknown tool: ${name}` };
   }
 }
@@ -291,5 +293,116 @@ async function launchCampaign(args: any) {
     return { success: true, ...result };
   } catch (err) {
     return { success: false, error: (err as Error).message };
+  }
+}
+
+async function refineMessage(args: any) {
+  const { original_message, direction, channel, audience_context } = args;
+
+  const channelLimits: Record<string, number> = { whatsapp: 160, sms: 140, email: 500, rcs: 200 };
+  const maxLength = channelLimits[channel] || 200;
+
+  try {
+    const { AzureOpenAI } = await import('openai');
+    const client = new AzureOpenAI({
+      endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+      apiKey: process.env.AZURE_OPENAI_API_KEY,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2025-01-01-preview',
+    });
+
+    const response = await client.chat.completions.create({
+      model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o',
+      messages: [{
+        role: 'user',
+        content: `You are an expert copywriter for BrewPulse (premium Indian coffee chain).
+
+Original message: "${original_message}"
+Refinement direction: ${direction}
+Channel: ${channel} (max ${maxLength} chars)
+${audience_context ? `Audience: ${audience_context}` : ''}
+
+Generate 3 refined variants, each using a different angle. Apply the direction while keeping the core offer.
+Use {{name}} for personalization. Keep under ${maxLength} chars each.
+
+Return ONLY valid JSON:
+{
+  "variants": [
+    { "message": "...", "hook_type": "scarcity|curiosity|exclusivity|social_proof|loss_aversion|benefit_first", "predicted_ctr": "high|medium|low", "reasoning": "1 sentence why this works" },
+    { "message": "...", "hook_type": "...", "predicted_ctr": "...", "reasoning": "..." },
+    { "message": "...", "hook_type": "...", "predicted_ctr": "...", "reasoning": "..." }
+  ],
+  "recommendation": 0
+}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.9,
+    });
+
+    const content = response.choices[0]?.message?.content || '{}';
+    return JSON.parse(content);
+  } catch (err) {
+    return {
+      variants: [
+        { message: original_message, hook_type: 'original', predicted_ctr: 'medium', reasoning: 'Original message preserved' },
+      ],
+      error: (err as Error).message,
+    };
+  }
+}
+
+async function abTestHooks(args: any) {
+  const { goal, audience, channel, brand_tone } = args;
+
+  const channelLimits: Record<string, number> = { whatsapp: 160, sms: 140, email: 500, rcs: 200 };
+  const maxLength = channelLimits[channel] || 200;
+
+  try {
+    const { AzureOpenAI } = await import('openai');
+    const client = new AzureOpenAI({
+      endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+      apiKey: process.env.AZURE_OPENAI_API_KEY,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2025-01-01-preview',
+    });
+
+    const response = await client.chat.completions.create({
+      model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o',
+      messages: [{
+        role: 'user',
+        content: `You are a conversion copywriter for BrewPulse (premium Indian coffee chain).
+
+Goal: ${goal}
+Audience: ${audience}
+Channel: ${channel} (max ${maxLength} chars)
+Brand tone: ${brand_tone || 'premium'}
+
+Generate 3 A/B test message variants. Each MUST use a DIFFERENT psychological trigger:
+- Scarcity: limited time/quantity
+- Curiosity: open loop, incomplete information
+- Exclusivity: "only for you", VIP access
+- Social proof: "join 1000+ others who..."
+- Loss aversion: "don't miss out", "before it's gone"
+- Reciprocity: free gift first, then ask
+
+Use {{name}} for personalization. Max ${maxLength} chars. Make each hook genuinely different in approach.
+
+Return ONLY valid JSON:
+{
+  "hooks": [
+    { "message": "...", "trigger": "scarcity|curiosity|exclusivity|social_proof|loss_aversion|reciprocity", "predicted_ctr": <percentage 1-100>, "best_for": "1 sentence on when to use this" },
+    { "message": "...", "trigger": "...", "predicted_ctr": <number>, "best_for": "..." },
+    { "message": "...", "trigger": "...", "predicted_ctr": <number>, "best_for": "..." }
+  ],
+  "winner": 0,
+  "reasoning": "Why hook[winner] will perform best for this specific audience"
+}`,
+      }],
+      response_format: { type: 'json_object' },
+      temperature: 0.9,
+    });
+
+    const content = response.choices[0]?.message?.content || '{}';
+    return JSON.parse(content);
+  } catch (err) {
+    return { hooks: [], error: (err as Error).message };
   }
 }

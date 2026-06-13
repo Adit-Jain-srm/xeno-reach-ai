@@ -108,7 +108,7 @@ router.post('/chat/stream', async (req, res) => {
     const updatedMessages = [
       ...sessionHistory,
       { role: 'user', content: message, timestamp: new Date().toISOString() },
-      { role: 'assistant', content: fullContent, timestamp: new Date().toISOString() },
+      { role: 'assistant', content: fullContent, tool_calls: toolCalls, campaign: campaignData, timestamp: new Date().toISOString() },
     ];
 
     if (currentSessionId) {
