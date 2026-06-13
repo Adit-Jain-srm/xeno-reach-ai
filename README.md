@@ -98,12 +98,12 @@ npm run dev
 
 | Layer | Technology | Why |
 |-------|-----------|-----|
-| Frontend | React 18 + Vite + TypeScript | Fast HMR, small bundle, type safety |
-| Styling | Tailwind CSS + Framer Motion | Utility-first, production animations |
+| Frontend | React 19 + Vite 8 + TypeScript | Fast HMR, code-split bundle |
+| Styling | Tailwind CSS + Framer Motion | Ventriloc design system (light theme) |
 | Charts | Recharts | React-native, lightweight |
 | State | Zustand + TanStack Query + Supabase Realtime | Local + server + live |
 | Backend | Node.js + Express + TypeScript | Fast dev, strong ecosystem |
-| AI | OpenAI GPT-4o + GPT-4o-mini | Best function calling + cost efficiency |
+| AI | Azure OpenAI GPT-4o | Best function calling, streaming SSE |
 | Database | Supabase (PostgreSQL 15) | Realtime, triggers, free tier |
 | Queue | Upstash Redis | Serverless, HTTP-based |
 | Deployment | Vercel + Railway | Auto-deploy, free tiers |
@@ -114,9 +114,11 @@ npm run dev
 
 ```
 xeno-reach-ai/
-├── frontend/                  React SPA (7 screens)
+├── frontend/                  React SPA (8 screens + Customer Profile)
 │   ├── src/pages/             Dashboard, AgentChat, Campaigns, CampaignDetail,
-│   │                          Customers, Segments, Analytics
+│   │                          Customers, CustomerProfile, Segments, Analytics
+│   ├── src/components/ui/     Toast, Modal, Tooltip, Badge, Skeleton, EmptyState,
+│   │                          CommandPalette, PageWrapper
 │   ├── src/hooks/             useRealtime (Supabase subscriptions)
 │   ├── src/stores/            Zustand (agent state, UI state)
 │   └── src/services/          API client (axios)
@@ -262,3 +264,26 @@ npm run test:watch    # Watch mode
 ---
 
 Built with AI-native workflow using Cursor + Claude. Every architectural decision is documented in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Live Deployment
+
+| Service | URL |
+|---------|-----|
+| Frontend (Vercel) | https://xenoreach.ai.vercel.app |
+| Backend API (Railway) | https://xeno-reach-ai-production.up.railway.app |
+| Channel Service (Railway) | https://surprising-respect-production-5c4f.up.railway.app |
+
+---
+
+## Design System — Ventriloc
+
+Light theme: "analytics console on parchment."
+
+- **Accent:** Signal Orange (#ff682c) — charts, highlights, logo mark only
+- **Neutrals:** Carbon (#202020), Graphite (#4d4d4d), Slate (#828282)
+- **Surfaces:** Paper (#ffffff) cards on Mist (#efefef) canvas
+- **Typography:** Space Grotesk (headings, -0.02em tracking) + Inter (body/UI) + JetBrains Mono (data)
+- **Shapes:** 8px card radius, 20px pill buttons, 200px nav capsule
+- **Elevation:** white-on-gray contrast only, no heavy shadows
