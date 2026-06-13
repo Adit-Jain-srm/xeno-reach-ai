@@ -2,15 +2,18 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { fetchCampaign, fetchCampaignStats, fetchCampaignComms, launchCampaign } from '../services/api'
 import { useCampaignStatsRealtime } from '../hooks/useRealtime'
-import { ArrowLeft, Rocket, Info, TrendingUp, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Rocket, Info, TrendingUp, AlertTriangle, Users, MessageSquare, Radio } from 'lucide-react'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
+import { Modal, ModalActions, Button, Badge, useToast } from '../components/ui'
 
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>()
   const [launching, setLaunching] = useState(false)
+  const [showLaunchModal, setShowLaunchModal] = useState(false)
   const [hoveredStage, setHoveredStage] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const { data: campaign, refetch } = useQuery({ queryKey: ['campaign', id], queryFn: () => fetchCampaign(id!), enabled: !!id })
   const { data: stats } = useQuery({ queryKey: ['stats', id], queryFn: () => fetchCampaignStats(id!), enabled: !!id, refetchInterval: campaign?.status === 'running' ? 2000 : false })
@@ -19,7 +22,19 @@ export default function CampaignDetail() {
   const rt = useCampaignStatsRealtime(campaign?.status === 'running' ? id : undefined)
   const s = rt || stats
 
-  const handleLaunch = async () => { setLaunching(true); try { await launchCampaign(id!); refetch() } finally { setLaunching(false) } }
+  const handleLaunch = async () => {
+    setLaunching(true)
+    setShowLaunchModal(false)
+    try {
+      await launchCampaign(id!)
+      toast('success', 'Campaign launched!', `Sending to ${campaign.audience_count?.toLocaleString()} recipients...`)
+      refetch()
+    } catch (e: any) {
+      toast('error', 'Launch failed', e.response?.data?.error || e.message)
+    } finally {
+      setLaunching(false)
+    }
+  }
 
   const funnel = [
     { key: 'sent', label: 'SENT', value: s?.total_sent || 0, color: 'bg-semantic-blue', desc: 'Messages dispatched to channel service' },
@@ -52,7 +67,7 @@ export default function CampaignDetail() {
           </span>
         )}
         {campaign.status === 'draft' && (
-          <button onClick={handleLaunch} disabled={launching} className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-accent to-purple-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:shadow-accent/20 disabled:opacity-50 transition-all">
+          <button onClick={() => setShowLaunchModal(true)} disabled={launching} className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-accent to-purple-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:shadow-accent/20 disabled:opacity-50 transition-all">
             <Rocket size={12} /> {launching ? 'Launching...' : 'Launch Campaign'}
           </button>
         )}
@@ -158,6 +173,50 @@ export default function CampaignDetail() {
           )}
         </div>
       </div>
+
+      {/* Launch Confirmation Modal */}
+      <Modal
+        open={showLaunchModal}
+        onClose={() => setShowLaunchModal(false)}
+        title="Launch Campaign"
+        description="Review before sending"
+        size="sm"
+      >
+        <div className="space-y-3">
+          <div className="panel-raised rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <Users size={12} className="text-txt-4" />
+              <span className="text-txt-3">Audience</span>
+              <span className="ml-auto font-mono text-txt-0 font-semibold">{campaign.audience_count?.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <Radio size={12} className="text-txt-4" />
+              <span className="text-txt-3">Channels</span>
+              <span className="ml-auto text-txt-0 capitalize">{campaign.channels?.join(', ')}</span>
+            </div>
+            {campaign.message_template?.body && (
+              <div className="flex items-start gap-2 text-xs pt-1 border-t border-border-subtle">
+                <MessageSquare size={12} className="text-txt-4 mt-0.5" />
+                <span className="text-txt-3 truncate">{campaign.message_template.body.slice(0, 100)}...</span>
+              </div>
+            )}
+          </div>
+
+          {campaign.audience_count > 5000 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-semantic-amber/5 border border-semantic-amber/20">
+              <AlertTriangle size={12} className="text-semantic-amber" />
+              <span className="text-2xs text-semantic-amber">Large campaign — {campaign.audience_count.toLocaleString()} recipients</span>
+            </div>
+          )}
+
+          <ModalActions>
+            <Button variant="secondary" onClick={() => setShowLaunchModal(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleLaunch} disabled={launching}>
+              <Rocket size={11} /> {launching ? 'Launching...' : 'Launch Campaign'}
+            </Button>
+          </ModalActions>
+        </div>
+      </Modal>
     </div>
   )
 }

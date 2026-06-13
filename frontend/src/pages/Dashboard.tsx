@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchOverview, fetchCampaigns, fetchChannelPerformance } from '../services/api'
-import { TrendingUp, ArrowUpRight, Activity, Zap, Users, Megaphone, Send, Target } from 'lucide-react'
+import { TrendingUp, ArrowUpRight, Activity, Zap, Users, Megaphone, Send, Target, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { Tooltip, Badge } from '../components/ui'
 
 function AnimNum({ value, suffix = '' }: { value: number; suffix?: string }) {
   const [n, setN] = useState(0)
@@ -31,16 +32,54 @@ function ProgressRing({ value, size = 40, stroke = 3, color = 'stroke-accent' }:
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
 const fadeUp = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } }
 
+function generateSuggestions(overview: any, channels: any[]) {
+  const suggestions: { text: string; category: string }[] = []
+
+  if (overview?.total_customers) {
+    const inactive = Math.round(overview.total_customers * 0.18)
+    suggestions.push({
+      text: `${inactive.toLocaleString()} customers haven't ordered in 30+ days. A win-back campaign with personalized offers could recover ₹${Math.round(inactive * 280 / 100000)}L/month.`,
+      category: 'Retention',
+    })
+  }
+
+  if (channels?.length > 1) {
+    const sorted = [...(channels || [])].sort((a: any, b: any) => (b.read_rate || 0) - (a.read_rate || 0))
+    const best = sorted[0]
+    const worst = sorted[sorted.length - 1]
+    if (best && worst && best.channel !== worst.channel) {
+      suggestions.push({
+        text: `${best.channel} outperforms ${worst.channel} by ${((best.read_rate || 0) / Math.max(worst.read_rate || 1, 1)).toFixed(1)}x in open rate. Consider shifting ${worst.channel} audience.`,
+        category: 'Channel',
+      })
+    }
+  }
+
+  if (overview?.total_campaigns < 3) {
+    suggestions.push({
+      text: 'Only a few campaigns run. Platinum customers respond best to personalized offers — try a loyalty reward campaign.',
+      category: 'Growth',
+    })
+  } else {
+    suggestions.push({
+      text: `With ${overview?.total_campaigns} campaigns, you have enough data for A/B testing. Try varying message tone or send times.`,
+      category: 'Optimize',
+    })
+  }
+
+  return suggestions.slice(0, 3)
+}
+
 export default function Dashboard() {
   const { data: ov, isLoading } = useQuery({ queryKey: ['overview'], queryFn: fetchOverview })
   const { data: camps } = useQuery({ queryKey: ['campaigns'], queryFn: () => fetchCampaigns({ page_size: 8 }) })
   const { data: channels } = useQuery({ queryKey: ['channels'], queryFn: fetchChannelPerformance })
 
   const metrics = [
-    { label: 'Total Customers', value: ov?.total_customers || 0, icon: Users, gradient: 'from-blue-500 to-cyan-400' },
-    { label: 'Campaigns Run', value: ov?.total_campaigns || 0, icon: Megaphone, gradient: 'from-purple-500 to-pink-400' },
-    { label: 'Messages Sent', value: ov?.aggregate?.sent || 0, icon: Send, gradient: 'from-emerald-500 to-teal-400' },
-    { label: 'Delivery Rate', value: ov?.overall_delivery_rate || 0, suffix: '%', icon: Target, gradient: 'from-amber-500 to-orange-400' },
+    { label: 'Total Customers', value: ov?.total_customers || 0, icon: Users, gradient: 'from-blue-500 to-cyan-400', tooltip: 'Active customer profiles in the BrewPulse database' },
+    { label: 'Campaigns Run', value: ov?.total_campaigns || 0, icon: Megaphone, gradient: 'from-purple-500 to-pink-400', tooltip: 'Total marketing campaigns created and launched' },
+    { label: 'Messages Sent', value: ov?.aggregate?.sent || 0, icon: Send, gradient: 'from-emerald-500 to-teal-400', tooltip: 'Total messages dispatched across all channels' },
+    { label: 'Delivery Rate', value: ov?.overall_delivery_rate || 0, suffix: '%', icon: Target, gradient: 'from-amber-500 to-orange-400', tooltip: 'Percentage of sent messages that reached recipient devices' },
   ]
 
   return (
@@ -58,10 +97,12 @@ export default function Dashboard() {
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {/* Metrics */}
         <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-4 gap-3">
-          {metrics.map(({ label, value, suffix, icon: Icon, gradient }) => (
+          {metrics.map(({ label, value, suffix, icon: Icon, gradient, tooltip }) => (
             <motion.div key={label} variants={fadeUp} className="panel rounded-xl p-4 hover:border-border transition-colors group">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-2xs text-txt-4 font-medium uppercase tracking-wider">{label}</span>
+                <Tooltip content={tooltip} side="bottom">
+                  <span className="text-2xs text-txt-4 font-medium uppercase tracking-wider cursor-help border-b border-dashed border-txt-4/30">{label}</span>
+                </Tooltip>
                 <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-200`}>
                   <Icon size={14} className="text-white" />
                 </div>
@@ -140,22 +181,34 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-        {/* AI Insight */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="panel rounded-xl p-4 border-l-[3px] border-l-accent">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-accent/20">
-              <Activity size={14} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-txt-1 leading-relaxed">
-                <span className="font-semibold text-txt-0">312 gold-tier customers</span> show declining visit frequency.
-                Win-back campaign with personalized offers could recover <span className="font-mono font-semibold text-semantic-green">₹4.2L</span>/month.
-              </p>
-              <Link to="/agent" className="inline-flex items-center gap-1 mt-2 text-xs text-accent hover:text-accent-light font-medium transition-colors">
-                Plan this campaign <ArrowUpRight size={11} />
-              </Link>
-            </div>
+        {/* Proactive AI Suggestions */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <Sparkles size={12} className="text-accent" />
+            <span className="text-xs font-semibold text-txt-2">AI Suggestions</span>
           </div>
+          {generateSuggestions(ov, channels).map((suggestion, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 + i * 0.1 }}
+              className="panel rounded-xl p-4 border-l-[3px] border-l-accent hover:border-l-accent-light transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-accent/20">
+                  <Activity size={14} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-txt-1 leading-relaxed">{suggestion.text}</p>
+                  <Link to="/agent" className="inline-flex items-center gap-1 mt-2 text-xs text-accent hover:text-accent-light font-medium transition-colors">
+                    Plan with AI <ArrowUpRight size={11} />
+                  </Link>
+                </div>
+                <Badge variant="accent">{suggestion.category}</Badge>
+              </div>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </div>

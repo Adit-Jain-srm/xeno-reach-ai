@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchCustomers } from '../services/api'
 import { useState } from 'react'
-import { Search, ChevronRight, User, ShoppingBag, TrendingUp, MessageSquare } from 'lucide-react'
+import { Search, ChevronRight, User, ShoppingBag, TrendingUp, MessageSquare, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../lib/cn'
+import { Link } from 'react-router-dom'
+import { Modal, ModalActions, Button, useToast } from '../components/ui'
+import { api } from '../services/api'
 
 export default function Customers() {
   const [search, setSearch] = useState('')
@@ -11,6 +14,10 @@ export default function Customers() {
   const [tier, setTier] = useState('')
   const [city, setCity] = useState('')
   const [selected, setSelected] = useState<any>(null)
+  const [showImport, setShowImport] = useState(false)
+  const [importJson, setImportJson] = useState('')
+  const [importing, setImporting] = useState(false)
+  const { toast } = useToast()
 
   const { data } = useQuery({
     queryKey: ['customers', page, search, tier, city],
@@ -32,6 +39,9 @@ export default function Customers() {
           <h1 className="text-md font-semibold text-txt-0">Customers</h1>
           <span className="text-2xs text-txt-4 font-mono">{data?.total?.toLocaleString() || '—'}</span>
           <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => setShowImport(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-bg-2 border border-border-subtle text-2xs text-txt-2 hover:text-txt-0 hover:border-accent/30 transition-colors">
+              <Upload size={11} /> Import
+            </button>
             <div className="relative">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-txt-4" />
               <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Search name, email..." className="pl-7 pr-3 py-1.5 w-52 rounded-md bg-bg-2 border border-border-subtle text-xs text-txt-0 placeholder:text-txt-4 focus:outline-none focus:border-accent/50 transition-colors" />
@@ -71,7 +81,7 @@ export default function Customers() {
                 return (
                   <tr key={c.id} onClick={() => setSelected(c)} className={cn('hover:bg-bg-2 transition-colors cursor-pointer group', selected?.id === c.id && 'bg-bg-2')}>
                     <td className="px-5 py-2.5">
-                      <div className="text-txt-0 font-medium group-hover:text-accent transition-colors">{c.name}</div>
+                      <Link to={`/customers/${c.id}`} onClick={e => e.stopPropagation()} className="text-txt-0 font-medium group-hover:text-accent transition-colors">{c.name}</Link>
                       <div className="text-2xs text-txt-4">{c.email}</div>
                     </td>
                     <td className="px-3 py-2.5 text-txt-2 text-xs">{c.city}</td>
@@ -193,6 +203,39 @@ export default function Customers() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Import Modal */}
+      <Modal open={showImport} onClose={() => setShowImport(false)} title="Import Customers" description="Paste JSON array of customer objects" size="lg">
+        <div className="space-y-3">
+          <textarea
+            value={importJson}
+            onChange={e => setImportJson(e.target.value)}
+            placeholder={`[{"name":"Priya Sharma","email":"priya@example.com","phone":"+919876543210","city":"Mumbai","loyalty_tier":"gold","total_orders":12,"total_spent":8500}]`}
+            className="w-full h-40 px-3 py-2 rounded-md bg-bg-2 border border-border-subtle text-xs text-txt-0 placeholder:text-txt-4 focus:outline-none focus:border-accent/50 font-mono resize-none"
+          />
+          <p className="text-2xs text-txt-4">Required fields: name. Optional: email, phone, city, loyalty_tier, total_orders, total_spent, preferred_channel</p>
+          <ModalActions>
+            <Button variant="secondary" onClick={() => setShowImport(false)}>Cancel</Button>
+            <Button
+              variant="primary"
+              disabled={importing || !importJson.trim()}
+              onClick={async () => {
+                setImporting(true)
+                try {
+                  const parsed = JSON.parse(importJson)
+                  const { data: result } = await api.post('/customers/bulk', parsed)
+                  toast('success', 'Import complete', `${result.inserted || parsed.length} customers imported`)
+                  setShowImport(false); setImportJson('')
+                } catch (e: any) {
+                  toast('error', 'Import failed', e.message?.includes('JSON') ? 'Invalid JSON format' : e.response?.data?.error || e.message)
+                } finally { setImporting(false) }
+              }}
+            >
+              <Upload size={11} /> {importing ? 'Importing...' : 'Import'}
+            </Button>
+          </ModalActions>
+        </div>
+      </Modal>
     </div>
   )
 }

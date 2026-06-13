@@ -10,6 +10,7 @@ export const api = axios.create({
 // Customers
 export const fetchCustomers = (params?: Record<string, any>) => api.get('/customers', { params }).then(r => r.data);
 export const fetchCustomer = (id: string) => api.get(`/customers/${id}`).then(r => r.data);
+export const fetchCustomerTimeline = (id: string) => api.get(`/customers/${id}/timeline`).then(r => r.data);
 
 // Orders
 export const fetchOrders = (params?: Record<string, any>) => api.get('/orders', { params }).then(r => r.data);
