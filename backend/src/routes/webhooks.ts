@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import { supabase } from '../db/supabase.js';
+import { checkDeliveryHealth } from '../ai/agents/delivery-monitor.js';
 
 const router = Router();
 
 // Idempotency store (in production, use Redis)
 const processedKeys = new Set<string>();
+// Track which campaigns need health checks (batch per campaign)
+const pendingHealthChecks = new Map<string, ReturnType<typeof setTimeout>>();
 
 router.post('/delivery', async (req, res, next) => {
   try {
@@ -87,6 +90,29 @@ async function processDeliveryReceipt(payload: {
 
   // Mark as processed
   processedKeys.add(idempotency_key);
+
+  // Trigger delivery health check (debounced per campaign)
+  const { data: commForCampaign } = await supabase
+    .from('communications')
+    .select('campaign_id')
+    .eq('id', communication_id)
+    .single();
+
+  if (commForCampaign?.campaign_id) {
+    const cid = commForCampaign.campaign_id;
+    if (pendingHealthChecks.has(cid)) clearTimeout(pendingHealthChecks.get(cid)!);
+    pendingHealthChecks.set(cid, setTimeout(async () => {
+      pendingHealthChecks.delete(cid);
+      try {
+        const alerts = await checkDeliveryHealth(cid);
+        if (alerts.length > 0) {
+          console.log(`[Delivery Monitor] Campaign ${cid}:`, alerts.map(a => `[${a.severity}] ${a.message}`).join('; '));
+        }
+      } catch (err) {
+        console.warn('[Delivery Monitor] Check failed:', (err as Error).message);
+      }
+    }, 3000));
+  }
 
   // Prevent memory leak — cap at 100K entries
   if (processedKeys.size > 100000) {

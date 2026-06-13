@@ -30,6 +30,8 @@ export const previewSegment = (filter_config: any) => api.post('/segments/previe
 // Analytics
 export const fetchOverview = () => api.get('/analytics/overview').then(r => r.data);
 export const fetchChannelPerformance = () => api.get('/analytics/channels').then(r => r.data);
+export const fetchAudienceIntelligence = () => api.get('/analytics/audience-intelligence').then(r => r.data);
+export const fetchCampaignAnalysis = (id: string) => api.get(`/analytics/campaign/${id}/analysis`).then(r => r.data);
 
 // Agent
 export const sendAgentMessage = (message: string, session_id?: string) =>

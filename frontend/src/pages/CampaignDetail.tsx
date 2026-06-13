@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
-import { fetchCampaign, fetchCampaignStats, fetchCampaignComms, launchCampaign } from '../services/api'
+import { fetchCampaign, fetchCampaignStats, fetchCampaignComms, launchCampaign, fetchCampaignAnalysis } from '../services/api'
 import { useCampaignStatsRealtime } from '../hooks/useRealtime'
-import { ArrowLeft, Rocket, Info, TrendingUp, AlertTriangle, Users, MessageSquare, Radio } from 'lucide-react'
+import { ArrowLeft, Rocket, Info, TrendingUp, AlertTriangle, Users, MessageSquare, Radio, Brain, Lightbulb, Target } from 'lucide-react'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
@@ -18,6 +18,11 @@ export default function CampaignDetail() {
   const { data: campaign, refetch } = useQuery({ queryKey: ['campaign', id], queryFn: () => fetchCampaign(id!), enabled: !!id })
   const { data: stats } = useQuery({ queryKey: ['stats', id], queryFn: () => fetchCampaignStats(id!), enabled: !!id, refetchInterval: campaign?.status === 'running' ? 2000 : false })
   const { data: comms } = useQuery({ queryKey: ['comms', id], queryFn: () => fetchCampaignComms(id!, { page_size: 30 }), enabled: !!id, refetchInterval: campaign?.status === 'running' ? 4000 : false })
+  const { data: analysis, isLoading: analysisLoading } = useQuery({
+    queryKey: ['campaign-analysis', id],
+    queryFn: () => fetchCampaignAnalysis(id!),
+    enabled: !!id && campaign?.status === 'completed',
+  })
 
   const rt = useCampaignStatsRealtime(campaign?.status === 'running' ? id : undefined)
   const s = rt || stats
@@ -133,6 +138,62 @@ export default function CampaignDetail() {
             </div>
           )}
         </div>
+
+        {/* AI Campaign Analysis (shows for completed campaigns) */}
+        {analysis && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="panel rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+              <Brain size={13} className="text-signal" />
+              <span className="text-xs font-semibold text-txt-0">AI Campaign Analysis</span>
+              <Badge variant={analysis.delivery_health?.verdict === 'excellent' ? 'success' : analysis.delivery_health?.verdict === 'good' ? 'info' : 'warning'} className="ml-auto">
+                Health: {analysis.delivery_health?.score}/100
+              </Badge>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-txt-1">{analysis.summary}</p>
+
+              {/* Audience Insights */}
+              {analysis.audience_insights?.length > 0 && (
+                <div>
+                  <div className="text-2xs text-txt-2 font-medium mb-1.5 flex items-center gap-1"><Lightbulb size={10} /> INSIGHTS</div>
+                  <div className="space-y-1">
+                    {analysis.audience_insights.map((insight: string, i: number) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-txt-1">
+                        <span className="text-signal mt-0.5">•</span>
+                        <span>{insight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Channel Verdict */}
+              {analysis.channel_verdict && (
+                <div className="panel-raised rounded-md p-3">
+                  <div className="text-2xs text-txt-2 font-medium mb-1">CHANNEL VERDICT</div>
+                  <p className="text-xs text-txt-0 font-medium capitalize">{analysis.channel_verdict.channel}: {analysis.channel_verdict.effectiveness}</p>
+                  <p className="text-xs text-txt-2 mt-0.5">{analysis.channel_verdict.recommendation}</p>
+                </div>
+              )}
+
+              {/* Next Steps */}
+              {analysis.next_campaign_suggestions?.length > 0 && (
+                <div>
+                  <div className="text-2xs text-txt-2 font-medium mb-1.5 flex items-center gap-1"><Target size={10} /> RECOMMENDED NEXT</div>
+                  {analysis.next_campaign_suggestions.map((sug: any, i: number) => (
+                    <div key={i} className="flex items-start gap-2 text-xs border-l-2 border-signal/30 pl-2 py-1">
+                      <div>
+                        <span className="text-txt-0 font-medium">{sug.title}</span>
+                        <span className="text-txt-2 ml-1">— {sug.audience}</span>
+                        <p className="text-txt-3 text-2xs mt-0.5">{sug.reasoning}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Communications Log */}
         <div className="panel rounded-lg overflow-hidden">
