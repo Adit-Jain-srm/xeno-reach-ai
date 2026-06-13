@@ -242,12 +242,13 @@ async function estimatePerformance(args: any) {
 }
 
 async function createCampaign(args: any) {
-  const { name, goal, audience_filter, channels, message_template } = args;
+  const { name, goal, audience_filter, audience_count, channels, message_template } = args;
 
   const campaign = await campaignService.createCampaign({
     name,
     goal,
     audience_filter: audience_filter || { conditions: [], logic: 'AND' },
+    audience_count: audience_count || 0,
     channels: channels || ['whatsapp'],
     message_template: { body: message_template, personalization_fields: ['name'] },
     ai_reasoning: `AI-generated campaign for goal: ${goal}`,

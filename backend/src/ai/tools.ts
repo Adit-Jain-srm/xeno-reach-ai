@@ -103,15 +103,16 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'create_campaign',
-      description: 'Create a campaign with the specified configuration. Returns the campaign ID for launching.',
+      description: 'Create a campaign with the specified configuration. You MUST set audience_count to the exact number from query_customers (use the audience_count field from query result). Returns the campaign ID for launching.',
       parameters: {
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Campaign name' },
           goal: { type: 'string', description: 'Campaign goal' },
+          audience_count: { type: 'number', description: 'EXACT number of customers to target. MUST match the audience_count returned by query_customers.' },
           audience_filter: {
             type: 'object',
-            description: 'Filter config to resolve audience',
+            description: 'Filter config to resolve audience at launch time',
             properties: {
               conditions: {
                 type: 'array',
@@ -130,7 +131,7 @@ export const AGENT_TOOLS: ChatCompletionTool[] = [
           channels: { type: 'array', items: { type: 'string', enum: ['whatsapp', 'sms', 'email', 'rcs'] } },
           message_template: { type: 'string', description: 'Message body with {{name}} personalization' },
         },
-        required: ['name', 'goal', 'audience_filter', 'channels', 'message_template'],
+        required: ['name', 'goal', 'audience_count', 'audience_filter', 'channels', 'message_template'],
       },
     },
   },
