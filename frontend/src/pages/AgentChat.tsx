@@ -187,10 +187,12 @@ export default function AgentChat() {
   }
 
   const prompts = [
-    { text: "Win back customers inactive for 30+ days", icon: "🔄" },
-    { text: "Launch cold brew to gold tier in Mumbai", icon: "☕" },
-    { text: "Send loyalty rewards to top 100 spenders", icon: "🎁" },
-    { text: "Analyze last campaign's performance", icon: "📊" },
+    { text: "Win back customers inactive for 30+ days", icon: "🔄", mode: "execute" },
+    { text: "What campaign should I run this week?", icon: "🧠", mode: "think" },
+    { text: "Send loyalty rewards to top 100 spenders", icon: "🎁", mode: "execute" },
+    { text: "Compare channels — which works best for us?", icon: "📊", mode: "think" },
+    { text: "Launch cold brew promo to gold tier Mumbai", icon: "☕", mode: "execute" },
+    { text: "Help me decide: retention vs acquisition", icon: "💡", mode: "think" },
   ]
 
   return (
@@ -235,7 +237,7 @@ export default function AgentChat() {
           <Badge variant="accent">GPT-4o</Badge>
           <div className="ml-auto flex items-center gap-2 text-2xs text-txt-4">
             <span className="w-1.5 h-1.5 rounded-full bg-semantic-green animate-pulse" />
-            Streaming · Self-correcting · 8 tools
+            Thinks · Decides · Executes · 8 tools
           </div>
         </header>
 
@@ -247,16 +249,16 @@ export default function AgentChat() {
               <div className="w-14 h-14 rounded-2xl bg-signal/10 border border-signal/20 flex items-center justify-center mb-5">
                 <Sparkles size={24} className="text-signal" />
                 </div>
-                <p className="text-lg font-semibold text-txt-0 mb-1">What campaign shall we run?</p>
-                <p className="text-sm text-txt-3 mb-8 text-center max-w-lg">
-                  I'll analyze your 10,000 customers, find the right audience, draft personalized messages, select optimal channels, and present a campaign plan — all from a single goal.
-                </p>
-                <div className="grid grid-cols-2 gap-2 w-full max-w-lg">
-                  {prompts.map(p => (
-                    <button key={p.text} onClick={() => setInput(p.text)} className="text-left px-3 py-2.5 rounded-lg text-sm text-txt-2 hover:text-txt-0 bg-bg-2 hover:bg-bg-3 border border-border-subtle hover:border-accent/30 transition-all duration-200 group">
-                      <span className="mr-2">{p.icon}</span>{p.text}
-                    </button>
-                  ))}
+              <p className="text-lg font-semibold text-txt-0 mb-1">Think, decide, or execute.</p>
+              <p className="text-sm text-txt-3 mb-8 text-center max-w-lg">
+                Ask me to analyze your data, compare strategies, or just give me a goal and I'll execute the full campaign — audience, message, channel, delivery.
+              </p>
+              <div className="grid grid-cols-3 gap-2 w-full max-w-2xl">
+                {prompts.map(p => (
+                  <button key={p.text} onClick={() => setInput(p.text)} className="text-left px-3 py-2.5 rounded-lg text-sm text-txt-2 hover:text-txt-0 bg-bg-2 hover:bg-bg-3 border border-border-subtle hover:border-accent/30 transition-all duration-200 group">
+                    <span className="mr-2">{p.icon}</span>{p.text}
+                  </button>
+                ))}
                 </div>
               </motion.div>
             )}
