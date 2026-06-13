@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd frontend && npm install --legacy-peer-deps && VITE_API_URL=https://backend-production-33a3.up.railway.app/api VITE_SUPABASE_URL=https://fezjpfcrikzirfypjjcp.supabase.co VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlempwZmNyaWt6aXJmeXBqamNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODUwNjMsImV4cCI6MjA5Njg2MTA2M30.HMl33ZAp3RFFGHkUKZ5cDwMfBk4qDwidJttSRL1taus npx vite build",
+  "buildCommand": "cd frontend && npm install --legacy-peer-deps && npx vite build",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "vite",
