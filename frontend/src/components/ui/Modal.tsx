@@ -45,14 +45,14 @@ export function Modal({ open, onClose, title, description, children, className, 
             if (e.target === overlayRef.current) onClose()
           }}
         >
-          <div className="absolute inset-0 bg-carbon/20 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className={cn(
-              'relative w-full panel shadow-lg',
+              'relative w-full glass-strong rounded-2xl shadow-float',
               SIZES[size],
               className
             )}
@@ -102,10 +102,10 @@ interface ButtonProps {
 }
 
 const BUTTON_VARIANTS = {
-  primary: 'bg-carbon hover:bg-graphite text-white',
-  secondary: 'bg-bg-2 hover:bg-bg-3 text-txt-0 border border-border',
+  primary: 'bg-gradient-to-r from-accent to-purple-500 hover:shadow-glow text-white',
+  secondary: 'bg-glass-light hover:bg-white/5 text-txt-1 border border-glass-border',
   danger: 'bg-semantic-red/10 hover:bg-semantic-red/20 text-semantic-red border border-semantic-red/20',
-  ghost: 'hover:bg-bg-2 text-txt-1 hover:text-txt-0',
+  ghost: 'hover:bg-glass-light text-txt-2 hover:text-txt-1',
 }
 
 export function Button({ variant = 'primary', children, onClick, disabled, className, type = 'button' }: ButtonProps) {

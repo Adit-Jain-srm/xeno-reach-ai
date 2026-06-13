@@ -98,16 +98,17 @@ export default function Dashboard() {
         {/* Metrics */}
         <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-4 gap-4">
           {metrics.map(({ label, value, suffix, icon: Icon, tooltip }) => (
-            <motion.div key={label} variants={fadeUp} className="panel p-5 hover:shadow-sm transition-shadow group">
-              <div className="flex items-center justify-between mb-3">
+            <motion.div key={label} variants={fadeUp} whileHover={{ y: -2, rotateX: 1, rotateY: -1 }} className="panel card-3d p-5 group relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative flex items-center justify-between mb-3">
                 <Tooltip content={tooltip} side="bottom">
-                  <span className="text-xs text-txt-2 font-medium cursor-help border-b border-dashed border-txt-3/40">{label}</span>
+                  <span className="text-xs text-txt-2 font-medium cursor-help border-b border-dashed border-txt-4/30">{label}</span>
                 </Tooltip>
-                <div className="w-8 h-8 rounded-lg bg-signal/10 flex items-center justify-center group-hover:bg-signal/15 transition-colors">
-                  <Icon size={15} className="text-signal" />
+                <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 group-hover:shadow-glow-sm transition-all duration-300">
+                  <Icon size={16} className="text-accent-light" />
                 </div>
               </div>
-              <div className="font-mono text-3xl font-bold text-txt-0 tracking-heading">
+              <div className="relative font-mono text-3xl font-bold text-txt-0 tracking-tight">
                 {isLoading ? <div className="w-16 h-7 bg-bg-3 rounded animate-pulse" /> : <AnimNum value={value} suffix={suffix} />}
               </div>
             </motion.div>
@@ -196,7 +197,7 @@ export default function Dashboard() {
               className="panel rounded-xl p-4 border-l-[3px] border-l-accent hover:border-l-accent-light transition-colors"
             >
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-signal/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent/20 to-purple-500/10 flex items-center justify-center flex-shrink-0 shadow-glow-sm">
                   <Activity size={14} className="text-white" />
                 </div>
                 <div className="flex-1">
