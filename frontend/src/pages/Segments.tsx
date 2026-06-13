@@ -8,115 +8,98 @@ export default function Segments() {
   const { data: segments, refetch } = useQuery({ queryKey: ['segments'], queryFn: fetchSegments })
   const [nlQuery, setNlQuery] = useState('')
   const [preview, setPreview] = useState<{ count: number; sample: any[] } | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const handleNLSegment = async () => {
     if (!nlQuery.trim()) return
-    // For now, parse basic NL into filter config (in production, AI would do this)
+    setLoading(true)
     const filter = parseNLToFilter(nlQuery)
     try {
       const result = await previewSegment(filter)
       setPreview(result)
-    } catch (err) {
-      console.error('Preview failed:', err)
-    }
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
   }
 
-  const handleSaveSegment = async () => {
+  const handleSave = async () => {
     if (!nlQuery.trim() || !preview) return
-    const filter = parseNLToFilter(nlQuery)
-    await createSegment({
-      name: nlQuery.slice(0, 50),
-      description: nlQuery,
-      filter_config: filter,
-      natural_language_query: nlQuery,
-    })
-    refetch()
-    setNlQuery('')
-    setPreview(null)
+    await createSegment({ name: nlQuery.slice(0, 50), description: nlQuery, filter_config: parseNLToFilter(nlQuery), natural_language_query: nlQuery })
+    refetch(); setNlQuery(''); setPreview(null)
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">Audience Segments</h1>
-          <p className="text-[var(--text-muted)] text-sm mt-1">Create and manage customer segments</p>
-        </div>
-      </div>
+    <div className="h-full flex flex-col">
+      <header className="h-12 flex items-center px-5 border-b border-border-subtle flex-shrink-0">
+        <h1 className="text-md font-semibold text-txt-0">Segments</h1>
+        <span className="text-2xs text-txt-4 ml-3">{segments?.length || 0} saved</span>
+      </header>
 
-      {/* Natural Language Builder */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={16} className="text-[var(--primary)]" />
-          <h2 className="font-semibold text-sm">Natural Language Segment Builder</h2>
-        </div>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={nlQuery}
-            onChange={e => setNlQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleNLSegment()}
-            placeholder="e.g., Gold tier customers in Mumbai who haven't ordered in 2 weeks"
-            className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--primary)]"
-          />
-          <button onClick={handleNLSegment} className="px-4 py-2.5 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white rounded-lg text-sm font-medium transition-colors">
-            Preview
-          </button>
-        </div>
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        {/* NL Builder */}
+        <div className="panel rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={12} className="text-accent" />
+            <span className="text-xs font-medium text-txt-2">Natural Language Builder</span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={nlQuery}
+              onChange={e => setNlQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleNLSegment()}
+              placeholder="e.g., Gold tier in Mumbai who haven't ordered in 2 weeks"
+              className="flex-1 px-3 py-2 rounded-md bg-bg-2 border border-border-subtle text-sm text-txt-0 placeholder:text-txt-4 focus:outline-none focus:border-accent/50"
+            />
+            <button onClick={handleNLSegment} disabled={loading} className="px-3 py-2 rounded-md bg-accent hover:bg-accent-dim text-white text-xs font-medium disabled:opacity-50 transition-colors">
+              {loading ? '...' : 'Preview'}
+            </button>
+          </div>
 
-        {preview && (
-          <div className="mt-4 p-4 bg-[var(--bg)] rounded-lg border border-[var(--border)]">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm"><strong>{preview.count.toLocaleString()}</strong> customers match</p>
-              <button onClick={handleSaveSegment} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium">
-                <Plus size={12} /> Save Segment
-              </button>
-            </div>
-            {preview.sample.length > 0 && (
-              <div className="space-y-1">
-                {preview.sample.slice(0, 5).map((c: any) => (
-                  <div key={c.id} className="flex items-center justify-between text-xs text-[var(--text-muted)]">
-                    <span>{c.name} • {c.city}</span>
-                    <span>₹{Number(c.total_spent).toLocaleString()}</span>
-                  </div>
-                ))}
+          {preview && (
+            <div className="mt-3 p-3 rounded-md bg-bg-2 border border-border-subtle">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-txt-0"><span className="data-value">{preview.count.toLocaleString()}</span> customers match</span>
+                <button onClick={handleSave} className="flex items-center gap-1 px-2 py-1 rounded bg-semantic-green/10 text-semantic-green text-2xs font-medium hover:bg-semantic-green/20 transition-colors">
+                  <Plus size={10} /> Save
+                </button>
               </div>
+              {preview.sample.length > 0 && (
+                <div className="space-y-1">
+                  {preview.sample.slice(0, 5).map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between text-2xs text-txt-3">
+                      <span>{c.name} · {c.city}</span>
+                      <span className="data-value">₹{Number(c.total_spent).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Saved Segments */}
+        <div className="panel rounded-lg overflow-hidden">
+          <div className="px-3 py-2 border-b border-border-subtle">
+            <span className="text-xs font-medium text-txt-2">Saved Segments</span>
+          </div>
+          <div className="divide-y divide-border-subtle">
+            {segments?.map((seg: any) => (
+              <div key={seg.id} className="px-3 py-2.5 hover:bg-bg-2 transition-colors flex items-center gap-3">
+                <Layers size={13} className="text-txt-4 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-txt-0 truncate">{seg.name}</div>
+                  <div className="text-2xs text-txt-4 mt-0.5">{seg.description}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="data-value text-xs text-txt-2">{seg.customer_count.toLocaleString()}</span>
+                  <Link to="/agent" className="text-2xs text-accent hover:text-accent-light">Campaign →</Link>
+                </div>
+              </div>
+            ))}
+            {!segments?.length && (
+              <div className="px-3 py-8 text-center text-txt-4 text-xs">No segments. Use the builder above.</div>
             )}
           </div>
-        )}
-      </div>
-
-      {/* Saved Segments */}
-      <h2 className="text-lg font-semibold mb-4">Saved Segments</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {segments?.map((seg: any) => (
-          <div key={seg.id} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--primary)]/50 transition-colors">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center">
-                <Layers size={16} className="text-[var(--primary)]" />
-              </div>
-              <div>
-                <h3 className="font-medium text-sm">{seg.name}</h3>
-                <p className="text-xs text-[var(--text-muted)]">{seg.description}</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-3">
-              <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                <Users size={12} />
-                {seg.customer_count.toLocaleString()} customers
-              </div>
-              <Link to="/agent" className="text-xs text-[var(--primary)] hover:underline">
-                Campaign →
-              </Link>
-            </div>
-          </div>
-        ))}
-        {!segments?.length && (
-          <div className="col-span-2 text-center py-12 text-[var(--text-muted)]">
-            <Layers size={48} className="mx-auto mb-4 opacity-30" />
-            <p>No segments yet. Use the builder above to create one!</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )
@@ -125,7 +108,6 @@ export default function Segments() {
 function parseNLToFilter(query: string) {
   const conditions: any[] = []
   const q = query.toLowerCase()
-
   if (q.includes('gold')) conditions.push({ field: 'loyalty_tier', operator: 'eq', value: 'gold' })
   if (q.includes('platinum')) conditions.push({ field: 'loyalty_tier', operator: 'eq', value: 'platinum' })
   if (q.includes('silver')) conditions.push({ field: 'loyalty_tier', operator: 'eq', value: 'silver' })
@@ -133,23 +115,14 @@ function parseNLToFilter(query: string) {
   if (q.includes('delhi')) conditions.push({ field: 'city', operator: 'eq', value: 'Delhi' })
   if (q.includes('bangalore')) conditions.push({ field: 'city', operator: 'eq', value: 'Bangalore' })
   if (q.includes('whatsapp')) conditions.push({ field: 'preferred_channel', operator: 'eq', value: 'whatsapp' })
-
-  const inactiveDaysMatch = q.match(/(\d+)\s*(days?|weeks?)/);
-  if (inactiveDaysMatch && (q.includes("haven't") || q.includes('inactive') || q.includes('not ordered'))) {
-    let days = parseInt(inactiveDaysMatch[1]);
-    if (inactiveDaysMatch[2].startsWith('week')) days *= 7;
-    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    conditions.push({ field: 'last_purchase_at', operator: 'lt', value: cutoff });
+  const daysMatch = q.match(/(\d+)\s*(days?|weeks?)/)
+  if (daysMatch && (q.includes("haven't") || q.includes('inactive') || q.includes('not ordered'))) {
+    let days = parseInt(daysMatch[1])
+    if (daysMatch[2].startsWith('week')) days *= 7
+    conditions.push({ field: 'last_purchase_at', operator: 'lt', value: new Date(Date.now() - days * 86400000).toISOString() })
   }
-
-  const spentMatch = q.match(/(?:spent|spend).*?(\d+)/);
-  if (spentMatch) {
-    conditions.push({ field: 'total_spent', operator: 'gt', value: parseInt(spentMatch[1]) });
-  }
-
-  if (conditions.length === 0) {
-    conditions.push({ field: 'total_orders', operator: 'gte', value: 1 });
-  }
-
-  return { conditions, logic: 'AND' as const };
+  const spentMatch = q.match(/(?:spent|spend).*?(\d+)/)
+  if (spentMatch) conditions.push({ field: 'total_spent', operator: 'gt', value: parseInt(spentMatch[1]) })
+  if (conditions.length === 0) conditions.push({ field: 'total_orders', operator: 'gte', value: 1 })
+  return { conditions, logic: 'AND' as const }
 }
